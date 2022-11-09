@@ -4,6 +4,7 @@ import h5py
 from torcs_client.torcs_client import Client
 from torcs_client.utils import start_container, reset_torcs
 
+
 class Simple(object):
     def __init__(self, state_dims, action_dims, action_boundaries, hyperparams):
         self.action_dims = action_dims
@@ -66,19 +67,20 @@ class Simple(object):
 
         self.dataset_reward.append(reward)
 
-        if terminal == True:
+        if terminal:
             # remember done
+            # TODO(jiale) self.track will be nonetype
             dataset_file = h5py.File("dataset/berniw_clone_{}.h5".format(self.track.replace("-", "")), "a")
             # telemetry
-            dataset_file.create_dataset("dist", data = self.dataset_dist)
-            dataset_file.create_dataset("time", data = self.dataset_time)
+            dataset_file.create_dataset("dist", data=self.dataset_dist)
+            dataset_file.create_dataset("time", data=self.dataset_time)
             # state
-            dataset_file.create_dataset("sensors", data = self.dataset_sensors)
-            dataset_file.create_dataset("sensors_new", data = self.dataset_sensors_new)
+            dataset_file.create_dataset("sensors", data=self.dataset_sensors)
+            dataset_file.create_dataset("sensors_new", data=self.dataset_sensors_new)
             # action
-            dataset_file.create_dataset("action", data = self.dataset_action)
+            dataset_file.create_dataset("action", data=self.dataset_action)
             # reward
-            dataset_file.create_dataset("reward", data = self.dataset_reward)
+            dataset_file.create_dataset("reward", data=self.dataset_reward)
 
             self.dataset_dist = []
             self.dataset_time = []

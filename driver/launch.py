@@ -3,10 +3,12 @@ import argparse
 import yaml
 import importlib.util
 
+
 class Launch:
     """
     Load config files and run module and launch
     """
+
     def __init__(self, args):
         self.verbose = args.verbose
         self.privileged = args.privileged
@@ -61,9 +63,12 @@ class Launch:
                 print(exc)
 
     def run(self):
-        self.entrypoint(verbose = self.verbose, hyperparams = self.hyperparams, sensors = self.sensors, driver = self.driver,
-                training = self.training, algo_name = self.algo_name, algo_path = self.algo_path, image_name = self.image_name,
-                stack_depth = self.stack_depth, img_width = self.img_width, img_height = self.img_height, privileged = self.privileged)
+        self.entrypoint(verbose=self.verbose, hyperparams=self.hyperparams, sensors=self.sensors, driver=self.driver,
+                        training=self.training, algo_name=self.algo_name, algo_path=self.algo_path,
+                        image_name=self.image_name,
+                        stack_depth=self.stack_depth, img_width=self.img_width, img_height=self.img_height,
+                        privileged=self.privileged)
+
 
 if __name__ == "__main__":
     try:
@@ -72,10 +77,13 @@ if __name__ == "__main__":
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-        parser = argparse.ArgumentParser(description="pyTORCS: TORCS-based environment for simple autonomous driving simulations.")
-        parser.add_argument("--config", help="Path to the yaml config file.", default="config/simulation.yaml", type=str)
+        parser = argparse.ArgumentParser(
+            description="pyTORCS: TORCS-based environment for simple autonomous driving simulations.")
+        parser.add_argument("--config", help="Path to the yaml config file.", default="config/simulation.yaml",
+                            type=str)
         parser.add_argument("--verbose", help="Set verbose.", default=False, action="store_true")
-        parser.add_argument("--privileged", help="Set privileged. Attempts to solve the NVML runtime docker issue.", default=False, action="store_true")
+        parser.add_argument("--privileged", help="Set privileged. Attempts to solve the NVML runtime docker issue.",
+                            default=False, action="store_true")
 
         args = parser.parse_args()
 
@@ -84,5 +92,6 @@ if __name__ == "__main__":
         pytorcs.run()
     except Exception:
         import traceback
+
         traceback.print_exc()
         input("pytorcs crashed")
