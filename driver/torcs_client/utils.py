@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import importlib.util
 
+
 class SimpleLogger:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
@@ -22,27 +23,32 @@ class SimpleLogger:
         if str == None:
             str = ""
         print(SimpleLogger.OKBLUE + "[INFO]: " + str + SimpleLogger.ENDC)
+
     @staticmethod
     def alert(str):
         if str == None:
             str = ""
         print(SimpleLogger.WARNING + "[WARN]: " + str + SimpleLogger.ENDC)
+
     @staticmethod
     def error(str):
         if str == None:
             str = ""
         print(SimpleLogger.FAIL + "[ERR]: " + str + SimpleLogger.ENDC)
+
     @staticmethod
     def training(str, loss):
         if str == None or loss == None:
             str = ""
             loss = 0.0
         print("--> " + str + SimpleLogger.OKGREEN + "Loss {:.3f}".format(loss) + SimpleLogger.ENDC)
+
     @staticmethod
     def separator(columns):
         print()
         print("-" * int(columns))
         print()
+
 
 def agent_from_module(mod_name, run_path):
     spec = importlib.util.spec_from_file_location(mod_name, run_path)
@@ -50,26 +56,28 @@ def agent_from_module(mod_name, run_path):
     spec.loader.exec_module(mod)
     return getattr(mod, mod_name)
 
+
 def start_container(image_name, verbose, ports, privileged):
     # check if the container is already up
     container_id = subprocess.check_output(["docker", "ps", "-q", "--filter", "ancestor=" + image_name]).decode("utf-8")
     if len(container_id) == 0:
         # not yet started
         # get display from environment
-        display = "unix" + os.environ["DISPLAY"]
+        display = os.environ["DISPLAY"]
         torcs_config_dir = os.path.join(os.getcwd(), "torcs/configs/config")
         scr_config_dir = os.path.join(os.getcwd(), "torcs/configs/drivers/scr_server/scr_server.xml")
         scr_car_dir = os.path.join(os.getcwd(), "torcs/configs/drivers/scr_server/0")
         if verbose: SimpleLogger.info("Starting TORCS container...")
         docker_command = []
         docker_command.extend(["nvidia-docker", "run", "--ipc=host",
-            "-v", "/tmp/.X11-unix:/tmp/.X11-unix:ro",
-            "-v", "{}:/usr/local/share/games/torcs/config:ro".format(torcs_config_dir),
-            "-v", "{}:/usr/local/share/games/torcs/drivers/scr_server/scr_server.xml:ro".format(scr_config_dir),
-            "-v", "{}:/usr/local/share/games/torcs/drivers/scr_server/0:ro".format(scr_car_dir),
-            "-e", "DISPLAY=" + display])
+                               "-v", "/tmp/.X11-unix:/tmp/.X11-unix:ro",
+                               "-v", "{}:/usr/local/share/games/torcs/config:ro".format(torcs_config_dir),
+                               "-v", "{}:/usr/local/share/games/torcs/drivers/scr_server/scr_server.xml:ro".format(
+                scr_config_dir),
+                               "-v", "{}:/usr/local/share/games/torcs/drivers/scr_server/0:ro".format(scr_car_dir),
+                               "-e", "DISPLAY=" + display])
         for port in ports:
-            docker_command.extend(["-p", "{p}:{p}/udp".format(p = port)])
+            docker_command.extend(["-p", "{p}:{p}/udp".format(p=port)])
         if privileged:
             docker_command.append("--privileged")
         docker_command.extend(["--rm", "-t", "-d", image_name])
@@ -78,7 +86,8 @@ def start_container(image_name, verbose, ports, privileged):
         time.sleep(0.5)
         while len(container_id) == 0:
             time.sleep(0.5)
-            container_id = subprocess.check_output(["docker", "ps", "-q", "--filter", "ancestor=" + image_name]).decode("utf-8")
+            container_id = subprocess.check_output(["docker", "ps", "-q", "--filter", "ancestor=" + image_name]).decode(
+                "utf-8")
         container_id = re.sub("[^a-zA-Z0-9 -]", "", container_id)
         if verbose: SimpleLogger.info("Container started with id {}".format(container_id))
     else:
@@ -87,7 +96,8 @@ def start_container(image_name, verbose, ports, privileged):
 
     return container_id
 
-def reset_torcs(container_id, vision, kill = False):
+
+def reset_torcs(container_id, vision, kill=False):
     command = []
     if kill == True:
         kill_torcs(container_id)
@@ -96,7 +106,8 @@ def reset_torcs(container_id, vision, kill = False):
         command.extend(["docker", "exec", container_id])
     else:
         subprocess.Popen(["rm", "-rf", "/usr/local/share/games/torcs/config"])
-        subprocess.Popen(["cp", "-R", os.path.join(os.getcwd(), "torcs/configs/config"), "/usr/local/share/games/torcs"])
+        subprocess.Popen(
+            ["cp", "-R", os.path.join(os.getcwd(), "torcs/configs/config"), "/usr/local/share/games/torcs"])
         subprocess.Popen(["cp", os.path.join(os.getcwd(), "torcs/configs/drivers"), "/usr/local/share/games/torcs/"])
 
     command.extend(["torcs", "-nofuel", "-nodamage", "-nolaptime"])
@@ -106,6 +117,7 @@ def reset_torcs(container_id, vision, kill = False):
 
     subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+
 def kill_torcs(container_id):
     command = []
     if container_id != "0":
@@ -113,11 +125,13 @@ def kill_torcs(container_id):
     command.extend(["pkill", "torcs"])
     subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+
 def kill_container(container_id):
     command = []
     if container_id != "0":
         command.extend(["docker", "kill", container_id])
     subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 def change_track(race_type, track, tracks_categories):
     from lxml import etree
@@ -138,7 +152,8 @@ def change_track(race_type, track, tracks_categories):
 
     with open(torcs_race_xml, "wb") as doc:
         doc.write(b"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        doc.write(etree.tostring(config, pretty_print = True))
+        doc.write(etree.tostring(config, pretty_print=True))
+
 
 def get_track(race_type):
     from lxml import etree
@@ -154,6 +169,7 @@ def get_track(race_type):
 
     return track
 
+
 def change_car(race_type, car):
     from lxml import etree
     scr_xml = os.path.join(os.getcwd(), "torcs/configs/drivers/scr_server/scr_server.xml")
@@ -166,7 +182,8 @@ def change_car(race_type, car):
 
     with open(scr_xml, "wb") as doc:
         doc.write(b"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        doc.write(etree.tostring(config, pretty_print = True))
+        doc.write(etree.tostring(config, pretty_print=True))
+
 
 def change_driver(race_type, driver_id, driver_module):
     from lxml import etree
@@ -186,7 +203,8 @@ def change_driver(race_type, driver_id, driver_module):
 
     with open(torcs_race_xml, "wb") as doc:
         doc.write(b"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        doc.write(etree.tostring(config, pretty_print = True))
+        doc.write(etree.tostring(config, pretty_print=True))
+
 
 def destringify(s):
     if not s: return s
@@ -194,7 +212,7 @@ def destringify(s):
         try:
             return float(s)
         except ValueError:
-            if self.verbose: SimpleLogger.alert("Could not find a value in {}".format(s))
+            SimpleLogger.alert("Could not find a value in {}".format(s))
             return s
     elif type(s) is list:
         if len(s) < 2:
@@ -202,12 +220,13 @@ def destringify(s):
         else:
             return [destringify(i) for i in s]
 
-def raw_to_rgb(img_buf, img_width, img_height):
 
+def raw_to_rgb(img_buf, img_width, img_height):
     img = np.array(img_buf.reshape((img_height, img_width, 3)))
-    img = np.flip(img, axis = 0)
+    img = np.flip(img, axis=0)
 
     return img
+
 
 def resize_frame(img, dest_width, dest_height):
     return cv2.resize(img, dsize=(dest_width, dest_height), interpolation=cv2.INTER_CUBIC)

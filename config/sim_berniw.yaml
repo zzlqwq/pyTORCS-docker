@@ -44,7 +44,8 @@ driver :
 training:
   # choosen track
   # can be choosen betwen
-
+  track:
+    - "alpine-1"
   # DIRT : dirt-1
   #
   # ROAD : alpine-1 corkscrew aalborg e-track-1 eroad g-track-1 ruudskogen street-1
