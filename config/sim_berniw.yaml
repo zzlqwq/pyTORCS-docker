@@ -1,5 +1,5 @@
 # docker image name
-image_name : "gerkone/torcs"
+image_name : "zjlqwq/gym_torcs:v1.0"
 
 # run module and path. change to your test script location and function
 mod_name : "main"
@@ -50,15 +50,15 @@ training:
   # ROAD : alpine-1 corkscrew aalborg e-track-1 eroad g-track-1 ruudskogen street-1
   #
   # OVAL : michigan
-    - alpine-1
-    - corkscrew
-    - aalborg
-    - e-track-1
-    - eroad
-    - g-track-1
-    - ruudskogen
-    - street-1
-    - michigan
+  #    - alpine-1
+  #    - corkscrew
+  #    - aalborg
+  #    - e-track-1
+  #    - eroad
+  #    - g-track-1
+  #    - ruudskogen
+  #    - street-1
+  #    - michigan
 
   # choosen car
   # can be choosen between

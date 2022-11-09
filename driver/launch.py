@@ -12,7 +12,7 @@ class Launch:
         self.privileged = args.privileged
         self.config_path = args.config
 
-        self.config = self._load_config()
+        self._load_config()
 
         self.entrypoint = self._entrypoint()
 
