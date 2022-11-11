@@ -1,11 +1,9 @@
 __pycache__/
 *.pyc
 *.o
-export/
 *.rc
 .depend
 *-bin
-dataset/*
 !dataset/clean.py
 plots
 .idea
