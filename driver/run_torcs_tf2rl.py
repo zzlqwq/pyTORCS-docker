@@ -5,7 +5,7 @@ from datetime import datetime
 from torcs_client.torcs_comp import TorcsEnv
 
 
-def main(verbose = False, hyperparams = None, sensors = None, image_name = "gerkone/torcs", driver = None,
+def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlqwq/gym_torcs:v1.0", driver = None,
         privileged = False, training = None, algo_name = None, algo_path = None, stack_depth = 1, img_width = 640, img_height = 480):
 
     max_steps = 1000
