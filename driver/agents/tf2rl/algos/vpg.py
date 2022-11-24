@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense
+from tensorflow.python.keras.layers import Dense
 
 from agents.tf2rl.algos.policy_base import OnPolicyAgent
 from agents.tf2rl.policies.tfp_gaussian_actor import GaussianActor

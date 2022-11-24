@@ -5,9 +5,8 @@ from datetime import datetime
 from torcs_client.torcs_comp import TorcsEnv
 
 
-def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlqwq/gym_torcs:v1.0", driver = None,
-        privileged = False, training = None, algo_name = None, algo_path = None, stack_depth = 1, img_width = 640, img_height = 480):
-
+def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_torcs:v1.0", driver=None,
+         privileged=False, training=None, algo_name=None, algo_path=None, stack_depth=1, img_width=640, img_height=480):
     max_steps = 1000
     n_epochs = 5
     episodes = 1000
@@ -36,10 +35,10 @@ def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlq
         driver_module = "scr_server"
 
     # Instantiate the environment
-    env = TorcsEnv(throttle = training["throttle"], gear_change = training["gear_change"], car = car,
-            verbose = verbose, state_filter = sensors, target_speed = training["target_speed"], sid = sid,
-            ports = ports, driver_id = driver_id, driver_module = driver_module, image_name = image_name,
-            privileged = privileged, img_width = img_width, img_height = img_height)
+    env = TorcsEnv(throttle=training["throttle"], gear_change=training["gear_change"], car=car,
+                   verbose=verbose, state_filter=sensors, target_speed=training["target_speed"], sid=sid,
+                   ports=ports, driver_id=driver_id, driver_module=driver_module, image_name=image_name,
+                   privileged=privileged, img_width=img_width, img_height=img_height)
 
     test_env = env
 
@@ -47,19 +46,12 @@ def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlq
     state_dims = [env.observation_space.shape[0]]  # sensors input
     action_boundaries = [env.action_space.low[0], env.action_space.high[0]]
 
-    args = {}
+    args = {"test_episodes": 1, "test_interval": hyperparams["test_interval"],
+            "save_summary_interval": hyperparams["test_interval"], "save_model_interval": hyperparams["test_interval"],
+            "max_steps": training["max_steps"], "episode_max_steps": int(1e7), "dir_suffix": ""}
 
-    args["test_episodes"] = 1
-    args["test_interval"] = hyperparams["test_interval"]
-    args["save_summary_interval"] = hyperparams["test_interval"]
-    args["save_model_interval"] = hyperparams["test_interval"]
-    args["max_steps"] = training["max_steps"]
-    args["episode_max_steps"] = int(1e7)
-    args["dir_suffix"] = ""
     if "model_dir" in hyperparams.keys():
         args["model_dir"] = hyperparams["model_dir"]
-
-    if "track" in training.keys(): track_list = training["track"]
 
     if training["algo"] == "PPO":
         from agents.tf2rl.algos.ppo import PPO
@@ -67,24 +59,24 @@ def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlq
         from agents.tf2rl.experiments.utils import load_expert_traj
 
         agent = PPO(
-            state_shape = env.observation_space.shape,
-            action_dim = env.action_space.high.size,
-            is_discrete = False,
-            max_action = env.action_space.high[0],
-            batch_size = hyperparams["batch_size"],
-            actor_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-            critic_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-            n_epoch = n_epochs,
-            lr_actor = hyperparams["actor_lr"],
-            lr_critic = hyperparams["critic_lr"],
-            hidden_activation_actor = "tanh",
-            hidden_activation_critic = "tanh",
-            discount = hyperparams["gamma"],
-            lam = hyperparams["lam"],
-            clip_ratio = hyperparams["clip_ratio"],
-            vfunc_coef = hyperparams["c_1"],
-            entropy_coef = hyperparams["c_2"],
-            horizon = hyperparams["horizon"]
+            state_shape=env.observation_space.shape,
+            action_dim=env.action_space.high.size,
+            is_discrete=False,
+            max_action=env.action_space.high[0],
+            batch_size=hyperparams["batch_size"],
+            actor_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            critic_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            n_epoch=n_epochs,
+            lr_actor=hyperparams["actor_lr"],
+            lr_critic=hyperparams["critic_lr"],
+            hidden_activation_actor="tanh",
+            hidden_activation_critic="tanh",
+            discount=hyperparams["gamma"],
+            lam=hyperparams["lam"],
+            clip_ratio=hyperparams["clip_ratio"],
+            vfunc_coef=hyperparams["c_1"],
+            entropy_coef=hyperparams["c_2"],
+            horizon=hyperparams["horizon"]
         )
 
         expert_trajs = None
@@ -92,25 +84,25 @@ def main(verbose = False, hyperparams = None, sensors = None, image_name = "zjlq
         if "dataset_dir" in hyperparams.keys():
             expert_trajs = load_expert_traj(hyperparams["dataset_dir"])
 
-        trainer = OnPolicyTrainer(agent, env, args, test_env = test_env, expert_trajs = expert_trajs)
+        trainer = OnPolicyTrainer(agent, env, args, test_env=test_env, expert_trajs=expert_trajs)
 
     elif training["algo"] == "DDPG":
         from agents.tf2rl.algos.ddpg import DDPG
         from agents.tf2rl.experiments.trainer import Trainer
 
         agent = DDPG(
-            state_shape = env.observation_space.shape,
-            action_dim = env.action_space.high.size,
-            memory_capacity = hyperparams["buf_size"],
-            max_action = env.action_space.high[0],
-            batch_size = hyperparams["batch_size"],
-            actor_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-            critic_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-            lr_actor = hyperparams["actor_lr"],
-            tau = hyperparams["tau"],
-            lr_critic = hyperparams["critic_lr"],
-            n_warmup = hyperparams["n_warmup"],
-            update_interval = hyperparams["update_interval"]
+            state_shape=env.observation_space.shape,
+            action_dim=env.action_space.high.size,
+            memory_capacity=hyperparams["buf_size"],
+            max_action=env.action_space.high[0],
+            batch_size=hyperparams["batch_size"],
+            actor_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            critic_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            lr_actor=hyperparams["actor_lr"],
+            tau=hyperparams["tau"],
+            lr_critic=hyperparams["critic_lr"],
+            n_warmup=hyperparams["n_warmup"],
+            update_interval=hyperparams["update_interval"]
         )
 
         trainer = Trainer(agent, env, args, test_env=test_env)
