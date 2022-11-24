@@ -52,7 +52,7 @@ class VPG(OnPolicyAgent):
         # TODO: clean codes
         if actor_critic is not None:
             self.actor_critic = actor_critic
-            self.actor_critic_optimizer = tf.keras.optimizers.Adam(
+            self.actor_critic_optimizer = tf.keras.optimizers.legacy.Adam(
                 learning_rate=lr_actor)
             self.actor = None
             self.critic = None
@@ -74,9 +74,9 @@ class VPG(OnPolicyAgent):
                                       hidden_activation=hidden_activation_critic)
             else:
                 self.critic = critic
-            self.actor_optimizer = tf.keras.optimizers.Adam(
+            self.actor_optimizer = tf.keras.optimizers.legacy.Adam(
                 learning_rate=lr_actor)
-            self.critic_optimizer = tf.keras.optimizers.Adam(
+            self.critic_optimizer = tf.keras.optimizers.legacy.Adam(
                 learning_rate=lr_critic)
 
         # This is used to check if input state to `get_action` is multiple (batch) or single
