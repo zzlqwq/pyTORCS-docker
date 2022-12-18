@@ -72,14 +72,14 @@ class DDPG(OffPolicyAgent):
         self.actor = Actor(state_shape, action_dim, max_action, actor_units)
         self.actor_target = Actor(
             state_shape, action_dim, max_action, actor_units)
-        self.actor_optimizer = tf.keras.optimizers.Adam(learning_rate=lr_actor)
+        self.actor_optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=lr_actor)
         update_target_variables(self.actor_target.weights,
                                 self.actor.weights, tau=1.)
 
         # Define and initialize Critic network
         self.critic = Critic(state_shape, action_dim, critic_units)
         self.critic_target = Critic(state_shape, action_dim, critic_units)
-        self.critic_optimizer = tf.keras.optimizers.Adam(
+        self.critic_optimizer = tf.keras.optimizers.legacy.Adam(
             learning_rate=lr_critic)
         update_target_variables(
             self.critic_target.weights, self.critic.weights, tau=1.)

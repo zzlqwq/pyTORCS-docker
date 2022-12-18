@@ -29,7 +29,6 @@ def unpack_state(state):
     return state_array
 
 
-
 class OnPolicyTrainer(Trainer):
     def __init__(self, policy, env, args, test_env = None, expert_trajs = None):
         super().__init__(policy, env, args, test_env)
@@ -42,10 +41,8 @@ class OnPolicyTrainer(Trainer):
         steps = []
         for track in track_list:
             # Prepare buffer
-            self.replay_buffer = get_replay_buffer(
-            self._policy, self._env)
-            kwargs_local_buf = get_default_rb_dict(
-            size=self._policy.horizon, env=self._env)
+            self.replay_buffer = get_replay_buffer(self._policy, self._env)
+            kwargs_local_buf = get_default_rb_dict(size=self._policy.horizon, env=self._env)
             kwargs_local_buf["env_dict"]["logp"] = {}
             kwargs_local_buf["env_dict"]["val"] = {}
 
@@ -97,9 +94,9 @@ class OnPolicyTrainer(Trainer):
                         # individual_noise to sample actions differently
                         act, logp, val = self._policy.get_action_and_val(obs, individual_noise = False, test = False)
 
-                        # if n_episode % 60 == 0:
-                        #     act = self.simple_controller(obs)
-                        #     logp = np.log(1)
+                        if n_episode % 60 == 0:
+                            act = self.simple_controller(obs)
+                            logp = np.log(1)
 
                         env_act = np.clip(act, self._env.action_space.low, self._env.action_space.high)
                         next_obs, reward, done = self._env.step(env_act)
