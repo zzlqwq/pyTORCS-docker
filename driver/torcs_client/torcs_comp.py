@@ -9,12 +9,18 @@ import sys, signal
 from torcs_client.torcs_client import Client
 from torcs_client.reward import TimeReward, LocalReward
 from torcs_client.terminator import custom_terminal
-from torcs_client.utils import SimpleLogger as log, start_container, reset_torcs, kill_torcs, kill_container, change_track, change_car, change_driver, get_track
+from torcs_client.utils import SimpleLogger as log, start_container, reset_torcs, kill_torcs, kill_container, \
+    change_track, change_car, change_driver, get_track
+
 
 class TorcsEnv:
-    def __init__(self, throttle = False, gear_change = False, car = "car1-trb1",  state_filter = None, target_speed = 50, sid = "SCR", ports = [3001],
-                privileged = False, driver_id = "0", driver_module = "scr_server", img_width = 640, img_height = 480, verbose = False, image_name = "gerkone/torcs"):
+    def __init__(self, throttle=False, gear_change=False, car="car1-trb1", state_filter=None, target_speed=50,
+                 sid="SCR", ports=None,
+                 privileged=False, driver_id="0", driver_module="scr_server", img_width=640, img_height=480,
+                 verbose=False, image_name="zjlqwq/gym_torcs:v1.0"):
 
+        if ports is None:
+            ports = [3001]
         self.throttle = throttle
         self.gear_change = gear_change
         self.target_speed = target_speed
@@ -38,37 +44,32 @@ class TorcsEnv:
         self.img_width = img_width
         self.img_height = img_height
 
-
         # reward class
-        # TODO parmametric change
+        # TODO parametric change
         self.rewarder = LocalReward()
         # self.rewarder = TimeReward()
 
         # TODO support other races
         self.race_type = "practice"
-        self.tracks_categories = {}
-        self.tracks_categories["dirt"] = ["dirt-1", "dirt-2", "dirt-3", "dirt-4", "dirt-5", "dirt-6", "mixed-1", "mixed-2"]
-        self.tracks_categories["road"] = ["alpine-1", "corkscrew", "e-track-3", "g-track-2", "ole-road-1", "street-1", "alpine-2",
-                        "e-track-6", "g-track-3", "ruudskogen", "wheel-1", "brondehach", "e-track-2", "forza", "spring", "wheel-2",
-                        "aalborg", "e-track-1", "e-track-5", "e-track-1", "e-track-5", "eroad", "e-track-4", "g-track-1"]
-        self.tracks_categories["oval"] = ["a-speedway", "b-speedway", "e-speedway", "g-speedway", "michigan", "c-speedway", "d-speedway", "f-speedway"]
+        self.tracks_categories = {"dirt": ["dirt-1", "dirt-2", "dirt-3", "dirt-4", "dirt-5", "dirt-6", "mixed-1",
+                                           "mixed-2"],
+                                  "road": ["alpine-1", "corkscrew", "e-track-3", "g-track-2", "ole-road-1", "street-1",
+                                           "alpine-2",
+                                           "e-track-6", "g-track-3", "ruudskogen", "wheel-1", "brondehach", "e-track-2",
+                                           "forza", "spring", "wheel-2",
+                                           "aalborg", "e-track-1", "e-track-5", "e-track-1", "e-track-5", "eroad",
+                                           "e-track-4", "g-track-1"],
+                                  "oval": ["a-speedway", "b-speedway", "e-speedway", "g-speedway", "michigan",
+                                           "c-speedway", "d-speedway", "f-speedway"]}
 
         # restart request ( relaunches torcs on environment reset )
         self.restart_needed = False
 
-        if state_filter != None:
+        if state_filter is not None:
             self.state_filter = dict(sorted(state_filter.items()))
         else:
-            self.state_filter = {}
-            self.state_filter["angle"] = np.pi
-            self.state_filter["track"] = 200.0
-            self.state_filter["trackPos"] = 1.0
-            self.state_filter["speedX"] = 300.0
-            self.state_filter["speedY"] = 300.0
-            self.state_filter["speedZ"] = 300.0
-            self.state_filter["wheelSpinVel"] = 1.0
-            self.state_filter["rpm"] = 10000
-
+            self.state_filter = {"angle": np.pi, "track": 200.0, "trackPos": 1.0, "speedX": 300.0, "speedY": 300.0,
+                                 "speedZ": 300.0, "wheelSpinVel": 1.0, "rpm": 10000}
 
         self.observation_space, self.action_space = self.build_spaces(self.state_filter, throttle)
 
@@ -118,7 +119,7 @@ class TorcsEnv:
             high = np.append(high, np.array([np.inf, np.inf, np.inf, np.inf]))
             low = np.append(low, np.zeros(4))
 
-        observation_space = spaces.Box(low = np.float32(low), high = np.float32(high), dtype = np.float32)
+        observation_space = spaces.Box(low=np.float32(low), high=np.float32(high), dtype=np.float32)
 
         # action space
 
@@ -144,7 +145,9 @@ class TorcsEnv:
 
         if self.throttle is False:
             try:
-                self.client.R.d["accel"] = self.automatic_throttle_control(self.target_speed, obs_curr, self.client.R.d["accel"], self.client.R.d["steer"])
+                self.client.R.d["accel"] = self.automatic_throttle_control(self.target_speed, obs_curr,
+                                                                           self.client.R.d["accel"],
+                                                                           self.client.R.d["steer"])
             except Exception:
                 self.client.R.d["accel"] = 0
         else:
@@ -154,7 +157,7 @@ class TorcsEnv:
         try:
             if self.gear_change is False:
                 # debounce used to avoid shifting 2 or more gears at once ( engine did not have the time to slow down )
-                self.shift_debounce -=  1
+                self.shift_debounce -= 1
                 self.client.R.d["gear"] = self.automatic_gearbox(obs_curr["rpm"], self.client.R.d["gear"])
             else:
                 self.client.R.d["gear"] = action["gear"]
@@ -175,15 +178,16 @@ class TorcsEnv:
             self.action_prev = action
             self.obs_prev = obs_new
 
-        ################### Termination ###################
+        # Termination condition
         try:
-            episode_terminate = custom_terminal(obs_new, curr_step = self.curr_step)
+            episode_terminate = custom_terminal(obs_new, curr_step=self.curr_step)
         except Exception:
             episode_terminate = False
 
-        ################### Reward ###################
+        # Reward
         try:
-            reward = self.rewarder.get_reward(obs_new, self.obs_prev, action, self.action_prev, self.curr_step, terminal = episode_terminate, track = self.track)
+            reward = self.rewarder.get_reward(obs_new, self.obs_prev, action, self.action_prev, self.curr_step,
+                                              terminal=episode_terminate, track=self.track)
         except Exception:
             import traceback
             traceback.print_exc()
@@ -215,12 +219,12 @@ class TorcsEnv:
             self.restart_needed = False
             # launch torcs for the first time
             reset_torcs(self.container_id, vision, True)
-        if first_run == True:
+        if first_run:
             reset_torcs(self.container_id, vision, False)
             # create new torcs client - after first torcs launch
             # TODO multiple port support
-            self.client = Client(port = self.ports[0], verbose = self.verbose, sid = self.sid,
-                        container_id = self.container_id, vision = vision, img_width = 640, img_height = 480)
+            self.client = Client(port=self.ports[0], verbose=self.verbose, sid=self.sid,
+                                 container_id=self.container_id, vision=vision, img_width=640, img_height=480)
 
         else:
             # restart torcs without closing - tell scr_server to restart race
@@ -254,7 +258,7 @@ class TorcsEnv:
         self.track = track
 
     def automatic_throttle_control(self, target_speed, curr_state, accel, steer):
-        if curr_state["speedX"] < target_speed - (steer*50):
+        if curr_state["speedX"] < target_speed - (steer * 50):
             accel += .01
         else:
             accel -= .01
@@ -266,8 +270,8 @@ class TorcsEnv:
             accel += 1 / (curr_state["speedX"] + .1)
 
         # Traction Control System
-        if ((curr_state["wheelSpinVel"][2]+curr_state["wheelSpinVel"][3]) -
-           (curr_state["wheelSpinVel"][0]+curr_state["wheelSpinVel"][1]) > 5):
+        if ((curr_state["wheelSpinVel"][2] + curr_state["wheelSpinVel"][3]) -
+                (curr_state["wheelSpinVel"][0] + curr_state["wheelSpinVel"][1]) > 5):
             accel -= .2
 
         return accel
@@ -276,7 +280,7 @@ class TorcsEnv:
         if rpm > 9500 and gear < 6 and self.shift_debounce <= 0:
             self.shift_debounce = 5
             gear += 1
-        if rpm < 4500 and gear > 1  and self.shift_debounce <= 0:
+        if rpm < 4500 and gear > 1 and self.shift_debounce <= 0:
             self.shift_debounce = 5
             gear -= 1
 
@@ -290,7 +294,7 @@ class TorcsEnv:
 
         if self.throttle is True:
             # composite throttle/brake, reduces search space size
-            if(u[1] > 0):
+            if (u[1] > 0):
                 # accelerator is upper half
                 torcs_action.update({"accel": u[1]})
                 torcs_action.update({"brake": 0})
@@ -298,7 +302,6 @@ class TorcsEnv:
                 # brake is inveerted lower half
                 torcs_action.update({"accel": 0})
                 torcs_action.update({"brake": -u[1]})
-
 
         if self.gear_change is True:
             torcs_action.update({"gear": int(u[2])})
@@ -312,7 +315,7 @@ class TorcsEnv:
         obs = {}
         for cat in self.state_filter:
             try:
-                par = np.array(raw_obs[cat], dtype=np.float32)/self.state_filter[cat]
+                par = np.array(raw_obs[cat], dtype=np.float32) / self.state_filter[cat]
                 obs[cat] = par
             except Exception:
                 # one of your sensors was not in the incoming string

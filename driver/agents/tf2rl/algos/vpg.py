@@ -18,7 +18,7 @@ class CriticV(tf.keras.Model):
 
         with tf.device('/cpu:0'):
             self(tf.constant(
-                np.zeros(shape=(1,)+state_shape, dtype=np.float32)))
+                np.zeros(shape=(1,) + state_shape, dtype=np.float32)))
 
     def call(self, inputs):
         features = self.l1(inputs)
@@ -82,7 +82,7 @@ class VPG(OnPolicyAgent):
         # This is used to check if input state to `get_action` is multiple (batch) or single
         self._state_ndim = np.array(state_shape).shape[0]
 
-    def get_action(self, state, test = False):
+    def get_action(self, state, test=False):
         if isinstance(state, LazyFrames):
             state = np.array(state)
         msg = "Input instance should be np.ndarray, not {}".format(type(state))
@@ -98,7 +98,7 @@ class VPG(OnPolicyAgent):
         else:
             return action.numpy(), logp.numpy()
 
-    def get_action_and_val(self, state, individual_noise = False, test = False):
+    def get_action_and_val(self, state, individual_noise=False, test=False):
         if isinstance(state, LazyFrames):
             state = np.array(state)
         is_single_input = state.ndim == self._state_ndim
@@ -114,7 +114,7 @@ class VPG(OnPolicyAgent):
         return action.numpy(), logp.numpy(), v.numpy()
 
     @tf.function
-    def _get_action_logp_v_body(self, state, individual_noise = False, test = False):
+    def _get_action_logp_v_body(self, state, individual_noise=False, test=False):
         if self.actor_critic:
             return self.actor_critic(state, individual_noise, test)
         else:
@@ -136,22 +136,22 @@ class VPG(OnPolicyAgent):
             states, actions, advantages, logp_olds)
         critic_loss = self._train_critic_body(states, returns)
         # Visualize results in TensorBoard
-        tf.summary.scalar(name=self.policy_name+"/actor_loss",
+        tf.summary.scalar(name=self.policy_name + "/actor_loss",
                           data=actor_loss)
-        tf.summary.scalar(name=self.policy_name+"/logp_max",
+        tf.summary.scalar(name=self.policy_name + "/logp_max",
                           data=np.max(logp_news))
-        tf.summary.scalar(name=self.policy_name+"/logp_min",
+        tf.summary.scalar(name=self.policy_name + "/logp_min",
                           data=np.min(logp_news))
-        tf.summary.scalar(name=self.policy_name+"/logp_mean",
+        tf.summary.scalar(name=self.policy_name + "/logp_mean",
                           data=np.mean(logp_news))
-        tf.summary.scalar(name=self.policy_name+"/adv_max",
+        tf.summary.scalar(name=self.policy_name + "/adv_max",
                           data=np.max(advantages))
-        tf.summary.scalar(name=self.policy_name+"/adv_min",
+        tf.summary.scalar(name=self.policy_name + "/adv_min",
                           data=np.min(advantages))
-        tf.summary.scalar(name=self.policy_name+"/kl",
+        tf.summary.scalar(name=self.policy_name + "/kl",
                           data=tf.reduce_mean(logp_olds - logp_news))
         tf.summary.scalar(name=self.policy_name +
-                          "/critic_loss", data=critic_loss)
+                               "/critic_loss", data=critic_loss)
         return actor_loss, critic_loss
 
     @tf.function
