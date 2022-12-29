@@ -16,7 +16,7 @@ def unpack_state(state):
     """
     state dict to state array if fixed order
     """
-    state_array = np.zeros(28)
+    state_array = np.zeros(29)
 
     state_array[0] = state["speedX"]
     state_array[1] = state["speedY"]
@@ -25,12 +25,13 @@ def unpack_state(state):
     state_array[4] = state["trackPos"]
     state_array[5:9] = state["wheelSpinVel"]
     state_array[9:28] = state["track"]
+    state_array[28] = state["rpm"]
 
     return state_array
 
 
 class OnPolicyTrainer(Trainer):
-    def __init__(self, policy, env, args, test_env = None, expert_trajs = None):
+    def __init__(self, policy, env, args, test_env=None, expert_trajs=None):
         super().__init__(policy, env, args, test_env)
         self.expert_trajs = expert_trajs
 
@@ -47,7 +48,7 @@ class OnPolicyTrainer(Trainer):
             kwargs_local_buf["env_dict"]["val"] = {}
 
             self.local_buffer = ReplayBuffer(**kwargs_local_buf)
-            if self.expert_trajs != None:
+            if self.expert_trajs is not None:
                 expert_trajs_size = self.expert_trajs["action"].shape[0]
                 exp_i = 0
 
@@ -58,7 +59,7 @@ class OnPolicyTrainer(Trainer):
             n_episode = 0
             max_test_return = 0
 
-            total_steps = np.array(0, dtype = np.int32)
+            total_steps = np.array(0, dtype=np.int32)
             tf.summary.experimental.set_step(total_steps)
             self._env.set_track(track)
 
@@ -79,8 +80,8 @@ class OnPolicyTrainer(Trainer):
                         #                 (exp_i + i + self._policy.horizon) % expert_trajs_size], self._policy.discount)[:-1]
                         # val = val[0]
                         self.local_buffer.add(
-                            obs = obs, act = act, next_obs = next_obs,
-                            rew = reward, done = False, logp = logp, val = val)
+                            obs=obs, act=act, next_obs=next_obs,
+                            rew=reward, done=False, logp=logp, val=val)
                     exp_i += self._policy.horizon
                     n_episode += 1
                 else:
@@ -92,11 +93,11 @@ class OnPolicyTrainer(Trainer):
                         if self._normalize_obs:
                             obs = self._obs_normalizer(obs, update=False)
                         # individual_noise to sample actions differently
-                        act, logp, val = self._policy.get_action_and_val(obs, individual_noise = False, test = False)
+                        act, logp, val = self._policy.get_action_and_val(obs, individual_noise=False, test=False)
 
-                        if n_episode % 60 == 0:
-                            act = self.simple_controller(obs)
-                            logp = np.log(1)
+                        # if n_episode % 60 == 0:
+                        #     act = self.simple_controller(obs)
+                        #     logp = np.log(1)
 
                         env_act = np.clip(act, self._env.action_space.low, self._env.action_space.high)
                         next_obs, reward, done = self._env.step(env_act)
@@ -108,7 +109,7 @@ class OnPolicyTrainer(Trainer):
 
                         done_flag = done
                         if (hasattr(self._env, "_max_episode_steps") and
-                            episode_steps == self._env._max_episode_steps):
+                                episode_steps == self._env._max_episode_steps):
                             done_flag = False
                         self.local_buffer.add(
                             obs=obs, act=act, next_obs=next_obs,
@@ -142,8 +143,9 @@ class OnPolicyTrainer(Trainer):
 
                         if total_steps % self._test_interval == 0:
                             avg_test_return, avg_test_steps = self.evaluate_policy(total_steps)
-                            self.logger.info("Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
-                                total_steps, avg_test_return, self._test_episodes))
+                            self.logger.info(
+                                "Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
+                                    total_steps, avg_test_return, self._test_episodes))
                             tf.summary.scalar(
                                 name="Common/average_test_return", data=avg_test_return)
                             tf.summary.scalar(
@@ -196,12 +198,14 @@ class OnPolicyTrainer(Trainer):
                             actor_loss += al
                             critic_loss += cl
                             entropy += ent
-                    actor_loss = actor_loss / (int(self._policy.horizon / self._policy.batch_size) * self._policy.n_epoch)
-                    critic_loss = critic_loss / (int(self._policy.horizon / self._policy.batch_size) * self._policy.n_epoch)
+                    actor_loss = actor_loss / (
+                            int(self._policy.horizon / self._policy.batch_size) * self._policy.n_epoch)
+                    critic_loss = critic_loss / (
+                            int(self._policy.horizon / self._policy.batch_size) * self._policy.n_epoch)
                     entropy = entropy / (int(self._policy.horizon / self._policy.batch_size) * self._policy.n_epoch)
                     entropies.append(entropy)
-                    self.logger.info("Done {} epochs. Average actor loss {}".format(self._policy.n_epoch, actor_loss, critic_loss))
-
+                    self.logger.info(
+                        "Done {} epochs. Average actor loss {}".format(self._policy.n_epoch, actor_loss, critic_loss))
 
         tf.summary.flush()
         return returns, steps, entropies

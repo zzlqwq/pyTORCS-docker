@@ -7,15 +7,9 @@ from torcs_client.torcs_comp import TorcsEnv
 
 def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_torcs:v1.0", driver=None,
          privileged=False, training=None, algo_name=None, algo_path=None, stack_depth=1, img_width=640, img_height=480):
-    max_steps = 1000
     n_epochs = 5
-    episodes = 1000
-    train_req = 1000
 
-    if "max_steps" in training.keys(): max_steps = training["max_steps"]
     if "epochs" in training.keys(): n_epochs = training["epochs"]
-    if "episodes" in training.keys(): episodes = training["episodes"]
-    if "train_req" in training.keys(): train_req = training["train_req"]
 
     track_list = [None]
     car = None
@@ -42,9 +36,9 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
 
     test_env = env
 
-    action_dims = [env.action_space.shape[0]]
-    state_dims = [env.observation_space.shape[0]]  # sensors input
-    action_boundaries = [env.action_space.low[0], env.action_space.high[0]]
+    # action_dims = [env.action_space.shape[0]]
+    # state_dims = [env.observation_space.shape[0]]  # sensors input
+    # action_boundaries = [env.action_space.low[0], env.action_space.high[0]]
 
     args = {"test_episodes": 1, "test_interval": hyperparams["test_interval"],
             "save_summary_interval": hyperparams["test_interval"], "save_model_interval": hyperparams["test_interval"],

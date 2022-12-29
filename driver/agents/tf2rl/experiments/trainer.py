@@ -15,17 +15,17 @@ from agents.tf2rl.envs.normalizer import EmpiricalNormalizer
 
 from torcs_client.reward import LocalReward
 
-
 if tf.config.experimental.list_physical_devices('GPU'):
     for cur_device in tf.config.experimental.list_physical_devices("GPU"):
         print(cur_device)
         tf.config.experimental.set_memory_growth(cur_device, enable=True)
 
+
 def unpack_state(state):
     """
     state dict to state array if fixed order
     """
-    state_array = np.zeros(28)
+    state_array = np.zeros(29)
 
     state_array[0] = state["speedX"]
     state_array[1] = state["speedY"]
@@ -34,8 +34,10 @@ def unpack_state(state):
     state_array[4] = state["trackPos"]
     state_array[5:9] = state["wheelSpinVel"]
     state_array[9:28] = state["track"]
+    state_array[28] = state["rpm"]
 
     return state_array
+
 
 class Trainer:
     def __init__(self, policy, env, args, test_env=None):
@@ -90,12 +92,11 @@ class Trainer:
     def simple_controller(self, state):
         action = np.zeros(2)
 
-        speedX = state[0]
+        speedX = state[0] * 300
         # steer to corner
         steer = state[3] * 19
         # # steer to center
         steer -= state[4] * .4
-
 
         if state[18] < 0.2 and speedX > 55:
             # front is getting close (80 mt)
@@ -139,8 +140,8 @@ class Trainer:
             n_episode = 0
 
             replay_buffer = get_replay_buffer(
-            self._policy, self._env, self._use_prioritized_rb,
-            self._use_nstep_rb, self._n_step)
+                self._policy, self._env, self._use_prioritized_rb,
+                self._use_nstep_rb, self._n_step)
             self._env.set_track(track)
 
             obs = self._env.reset()
@@ -152,8 +153,9 @@ class Trainer:
                 else:
                     action = self._policy.get_action(obs)
 
-                if n_episode % 60 == 0 and episode_steps < 1000 and n_episode < 500:
-                    action = self.simple_controller(obs)
+                # if n_episode % 60 == 0 and episode_steps < 1000 and n_episode < 500:
+                #     print("n_episode: ", n_episode, "episode_steps: ", episode_steps)
+                #     action = self.simple_controller(obs)
 
                 next_obs, reward, done = self._env.step(action)
                 next_obs = unpack_state(next_obs)
@@ -166,7 +168,7 @@ class Trainer:
 
                 done_flag = done
                 if (hasattr(self._env, "_max_episode_steps") and
-                    episode_steps == self._env._max_episode_steps):
+                        episode_steps == self._env._max_episode_steps):
                     done_flag = False
 
                 replay_buffer.add(obs=obs, act=action, next_obs=next_obs, rew=reward, done=done_flag)
@@ -177,9 +179,10 @@ class Trainer:
                     obs = self._env.reset()
                     obs = unpack_state(obs)
                     duration = time.perf_counter() - episode_start_time
-                    fps = episode_steps / (duration)
+                    fps = episode_steps / duration
                     self.logger.info(
-                        "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} FPS: {5:5.2f}".format(
+                        "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} "
+                        "FPS: {5:5.2f}".format(
                             n_episode + 1, int(total_steps), episode_steps, episode_return, duration, fps))
                     tf.summary.scalar(name="Common/training_return", data=episode_return)
                     tf.summary.scalar(name="Common/training_episode_length", data=episode_steps)
@@ -213,8 +216,9 @@ class Trainer:
 
                 if total_steps % self._test_interval == 0:
                     avg_test_return, avg_test_steps = self.evaluate_policy(total_steps)
-                    self.logger.info("Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
-                        total_steps, avg_test_return, self._test_episodes))
+                    self.logger.info(
+                        "Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
+                            total_steps, avg_test_return, self._test_episodes))
                     tf.summary.scalar(
                         name="Common/average_test_return", data=avg_test_return)
                     tf.summary.scalar(
@@ -227,7 +231,6 @@ class Trainer:
             if n_episode % 60 != 0 or n_episode > 500:
                 returns.append(episode_return)
                 steps.append(episode_steps)
-
 
         tf.summary.flush()
 
@@ -296,7 +299,7 @@ class Trainer:
             images = tf.cast(
                 tf.expand_dims(np.array(obs).transpose(2, 0, 1), axis=3),
                 tf.uint8)
-            tf.summary.image('train/input_img', images,)
+            tf.summary.image('train/input_img', images, )
         return avg_test_return / self._test_episodes, avg_test_steps / self._test_episodes
 
     def _set_from_args(self, args):
