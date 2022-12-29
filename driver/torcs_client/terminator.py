@@ -8,8 +8,8 @@ max_damage = 0
 # tolerance steps for out of track
 out_max = 4
 
-def custom_terminal(obs, curr_step):
 
+def custom_terminal(obs, curr_step):
     terminal = False
 
     angle = np.cos(obs["angle"])

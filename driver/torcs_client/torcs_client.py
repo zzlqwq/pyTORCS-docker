@@ -16,14 +16,16 @@ UDP_MSGLEN = 1000
 
 SHMKEY = 1234
 
+
 class Client():
     """
     Snake Oil is a Python library for interfacing with a TORCS
     race car simulator which has been patched with the server
     extentions used in the Simulated Car Racing competitions.
     """
-    def __init__(self, host = "localhost", port = 3001, sid="SCR", trackname = None, container_id = "0",
-            vision=False, verbose = False, img_height= 640, img_width = 480, max_packets = 1):
+
+    def __init__(self, host="localhost", port=3001, sid="SCR", trackname=None, container_id="0",
+                 vision=False, verbose=False, img_height=640, img_width=480, max_packets=1):
 
         # bufsize of the incoming packets (bytes)
         self.max_packets = max_packets
@@ -46,7 +48,7 @@ class Client():
 
         self.reset()
 
-        if(self.vision):
+        if (self.vision):
             self.setup_shm_vision()
 
     def reset(self):
@@ -96,13 +98,14 @@ class Client():
                 self.so.sendto(initmsg.encode(), (self.host, self.port))
             except socket.error as emsg:
                 sys.exit(-1)
-            sockdata= str()
+            sockdata = str()
             try:
-                sockdata = self.so.recv(2**13)
+                sockdata = self.so.recv(2 ** 13)
                 sockdata = sockdata.decode("utf-8")
             except socket.error as emsg:
                 if n_fail < 0:
-                    if self.verbose: log.alert("Could not connect to port {}: {}. Relaunch torcs".format(self.port, emsg))
+                    if self.verbose: log.alert(
+                        "Could not connect to port {}: {}. Relaunch torcs".format(self.port, emsg))
                     reset_torcs(self.container_id, self.vision, True)
                     n_fail = 4
                 n_fail -= 1
@@ -117,16 +120,16 @@ class Client():
         Open shared memory with the key that specified in torcs
         """
         # no need to attach/detach - read only access (nobody likes semaphores)
-        self.shm = ipc.SharedMemory(SHMKEY, flags = 0)
+        self.shm = ipc.SharedMemory(SHMKEY, flags=0)
 
     def get_vision(self):
         """
         Return a numpy array with the whole 640x480(x3) vision
         """
-        if(self.vision):
+        if (self.vision):
             # the first image in the shared memory is the last image of the previous run
             # skip it
-            if(hasattr(self, "shm") and self.just_started):
+            if (hasattr(self, "shm") and self.just_started):
                 # read image size, 16 padding pits should be there otherwise
                 buf = self.shm.read(self.img_width * self.img_height * 3)
                 # sent as array of 8 bit ints
@@ -152,7 +155,7 @@ class Client():
             try:
 
                 # Receive server data
-                sockdata = self.so.recv(2**13)
+                sockdata = self.so.recv(2 ** 13)
                 sockdata = sockdata.decode("utf-8")
 
             except socket.error as emsg:
@@ -166,7 +169,8 @@ class Client():
                 if self.verbose: log.info("Client connected on port {}".format(self.port))
                 continue
             elif "***shutdown***" in sockdata:
-                if self.verbose: log.alert("Server has stopped the race on {}. You were in {} place".format(self.port, self.S.d["racePos"]))
+                if self.verbose: log.alert(
+                    "Server has stopped the race on {}. You were in {} place".format(self.port, self.S.d["racePos"]))
                 self.shutdown()
                 return
             elif "***restart***" in sockdata:
@@ -188,10 +192,12 @@ class Client():
             log.error("Error sending to server: {} Message {}".format(emsg[1], str(emsg[0])))
             sys.exit(-1)
 
+
 class ServerState():
     """
     What the server is reporting right now.
     """
+
     def __init__(self):
         self.servstr = str()
         self.d = dict()
@@ -206,9 +212,10 @@ class ServerState():
             w = i.split(" ")
             self.d[w[0]] = destringify(w[1:])
 
-        if(image is not None):
+        if image is not None:
             # add image to the state dictionary
             self.d["img"] = image
+
 
 class DriverAction():
     """
@@ -217,17 +224,18 @@ class DriverAction():
     (accel 1)(brake 0)(gear 1)(steer 0)(clutch 0)(focus 0)(meta 0) or
     (accel 1)(brake 0)(gear 1)(steer 0)(clutch 0)(focus -90 -45 0 45 90)(meta 0)
     """
+
     def __init__(self):
-       self.actionstr = str()
-       # "d" is for data dictionary.
-       self.d = { "accel":0.2,
-                   "brake":0,
-                  "clutch":0,
-                    "gear":1,
-                   "steer":0,
-                   "focus":[-90,-45,0,45,90],
-                    "meta":0
-                    }
+        self.actionstr = str()
+        # "d" is for data dictionary.
+        self.d = {"accel": 0.2,
+                  "brake": 0,
+                  "clutch": 0,
+                  "gear": 1,
+                  "steer": 0,
+                  "focus": [-90, -45, 0, 45, 90],
+                  "meta": 0
+                  }
 
     def clip_to_limits(self):
         self.d["steer"] = np.clip(self.d["steer"], -1, 1)
@@ -235,21 +243,21 @@ class DriverAction():
         self.d["accel"] = np.clip(self.d["accel"], 0, 1)
         self.d["clutch"] = np.clip(self.d["clutch"], 0, 1)
         if self.d["gear"] not in [-1, 0, 1, 2, 3, 4, 5, 6]:
-            self.d["gear"]= 0
-        if self.d["meta"] not in [0,1]:
-            self.d["meta"]= 0
-        if type(self.d["focus"]) is not list or min(self.d["focus"])<-180 or max(self.d["focus"])>180:
-            self.d["focus"]= 0
+            self.d["gear"] = 0
+        if self.d["meta"] not in [0, 1]:
+            self.d["meta"] = 0
+        if type(self.d["focus"]) is not list or min(self.d["focus"]) < -180 or max(self.d["focus"]) > 180:
+            self.d["focus"] = 0
 
     def __repr__(self):
         self.clip_to_limits()
         out = str()
         for k in self.d:
-            out+= "("+k+" "
-            v= self.d[k]
+            out += "(" + k + " "
+            v = self.d[k]
             if not type(v) is list:
-                out+= "%.3f" % v
+                out += "%.3f" % v
             else:
-                out+= " ".join([str(x) for x in v])
-            out+= ")"
+                out += " ".join([str(x) for x in v])
+            out += ")"
         return out
