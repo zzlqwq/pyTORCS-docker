@@ -379,3 +379,21 @@ class Trainer:
         parser.add_argument('--logging-level', choices=['DEBUG', 'INFO', 'WARNING'],
                             default='INFO', help='Logging level')
         return parser
+
+    def test(self):
+        track = "aalborg"
+        self._env.set_track(track)
+
+        obs = self._env.reset()
+        obs = unpack_state(obs)
+        while True:
+            action = self._policy.get_action(obs)
+
+            next_obs, reward, done = self._env.step(action)
+            next_obs = unpack_state(next_obs)
+            if self._show_progress:
+                self._env.render()
+            obs = next_obs
+            if done:
+                obs = self._env.reset()
+                obs = unpack_state(obs)

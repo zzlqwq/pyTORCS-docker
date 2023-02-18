@@ -4,6 +4,7 @@ import h5py
 from torcs_client.torcs_client import Client
 from torcs_client.utils import start_container, reset_torcs
 
+
 class Simple(object):
     def __init__(self, state_dims, action_dims, action_boundaries, hyperparams):
         # normalized target speed
@@ -77,13 +78,12 @@ class Simple(object):
                 accel += 1 / (speedX + .1)
             self.prev_accel = accel
 
-        noise = np.random.uniform(low = -1, high = 1)
+        noise = np.random.uniform(low=-1, high=1)
         noise_scaled = noise * self.noise_scale
         # steer += noise_scaled
 
         action[0] = steer
         action[1] = accel
-
 
         if self.step > 0 and (self.step % self.save_each == 0):
             self.store_state(state, track)
@@ -94,20 +94,23 @@ class Simple(object):
 
     def store_state(self, state, track):
         if "img" in state.keys():
-            img = np.asarray(state["img"], dtype = np.uint8)
-            img = np.expand_dims(img, axis = 0)
+            img = np.asarray(state["img"], dtype=np.uint8)
+            img = np.expand_dims(img, axis=0)
             del state["img"]
             # not collecting speed - bad estimation
             del state["speedX"]
             sensors = np.hstack(list(state.values()))
-            sensors = np.expand_dims(sensors, axis = 0)
+            sensors = np.expand_dims(sensors, axis=0)
             if self.first_step:
                 self.first_step = False
-                self.dataset_file = h5py.File("dataset/ep{}_{}_{}.h5".format(self.prefix, self.total_episodes, track.replace("-", "")), "a")
-                self.dataset_file.create_dataset("img", data=img, compression="gzip", chunks=True, maxshape=(None, img.shape[1], img.shape[2], img.shape[3]))
-                self.dataset_file.create_dataset("sensors", data=sensors, compression="gzip", chunks=True, maxshape=(None, *self.state_dims))
+                self.dataset_file = h5py.File(
+                    "dataset/ep{}_{}_{}.h5".format(self.prefix, self.total_episodes, track.replace("-", "")), "a")
+                self.dataset_file.create_dataset("img", data=img, compression="gzip", chunks=True,
+                                                 maxshape=(None, img.shape[1], img.shape[2], img.shape[3]))
+                self.dataset_file.create_dataset("sensors", data=sensors, compression="gzip", chunks=True,
+                                                 maxshape=(None, *self.state_dims))
             else:
-                self.dataset_file["img"].resize((self.dataset_file["img"].shape[0] + img.shape[0]), axis = 0)
+                self.dataset_file["img"].resize((self.dataset_file["img"].shape[0] + img.shape[0]), axis=0)
                 self.dataset_file["img"][-img.shape[0]:] = img
-                self.dataset_file["sensors"].resize((self.dataset_file["sensors"].shape[0] + sensors.shape[0]), axis = 0)
+                self.dataset_file["sensors"].resize((self.dataset_file["sensors"].shape[0] + sensors.shape[0]), axis=0)
                 self.dataset_file["sensors"][-sensors.shape[0]:] = sensors

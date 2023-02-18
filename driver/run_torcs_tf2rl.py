@@ -7,17 +7,16 @@ from torcs_client.torcs_comp import TorcsEnv
 
 def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_torcs:v1.0", driver=None,
          privileged=False, training=None, algo_name=None, algo_path=None, stack_depth=1, img_width=640, img_height=480):
+    # Set Training Parameters
     n_epochs = 5
-
-    if "epochs" in training.keys(): n_epochs = training["epochs"]
-
     track_list = [None]
     car = None
-
+    if "epochs" in training.keys(): n_epochs = training["epochs"]
     if "track" in training.keys(): track_list = training["track"]
     if "car" in training.keys(): car = training["car"]
 
-    if driver != None:
+    # Set driver parameters
+    if driver is not None:
         sid = driver["sid"]
         ports = driver["ports"]
         driver_id = driver["index"]
@@ -100,37 +99,12 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
         )
 
         trainer = Trainer(agent, env, args, test_env=test_env)
-    # elif training["algo"] == "GAIL":
-    #     from agents.tf2rl.algos.ddpg import DDPG
-    #     from agents.tf2rl.algos.gail import GAIL
-    #     from agents.tf2rl.experiments.irl_trainer import IRLTrainer
-    #     from agents.tf2rl.experiments.utils import load_expert_traj
-    #
-    #     agent = DDPG(
-    #         state_shape = env.observation_space.shape,
-    #         action_dim = env.action_space.high.size,
-    #         memory_capacity = hyperparams["buf_size"],
-    #         max_action = env.action_space.high[0],
-    #         batch_size = hyperparams["batch_size"],
-    #         actor_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-    #         critic_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-    #         lr_actor = hyperparams["actor_lr"],
-    #         tau = hyperparams["tau"],
-    #         lr_critic = hyperparams["critic_lr"],
-    #         n_warmup = hyperparams["n_warmup"],
-    #         update_interval = hyperparams["update_interval"]
-    #     )
-    #
-    #     discriminator = GAIL(
-    #         state_shape = env.observation_space.shape,
-    #         action_dim = env.action_space.high.size,
-    #         units = [100, 100],
-    #         batch_size = hyperparams["batch_size"]
-    #     )
-    #     expert_trajs = load_expert_traj(hyperparams["dataset_dir"])
-    #     trainer = IRLTrainer(agent, env, args, discriminator, expert_trajs["state"], expert_trajs["state_new"], expert_trajs["action"], test_env)
 
-    returns, steps, entropies = trainer(track_list)
+    test = False
+    if test:
+        trainer.ppo_test()
+    else:
+        returns, steps, entropies = trainer(track_list)
 
     # plotting
     matplotlib.use("Agg")
@@ -140,21 +114,21 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
     ax.set(xlabel="Episode", ylabel="Return", title="Return per episode")
     ax.plot([x for x in range(len(returns))], returns)
 
-    fig.savefig("plots/returns_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
+    fig.savefig("./plots/returns_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
 
     fig, ax = plt.subplots()
     ax.set(xlabel="Episode", ylabel="Steps", title="Total steps per episode")
     ax.plot([x for x in range(len(steps))], steps)
 
-    with open("plots/returns_{}.txt".format(training["algo"]), "w") as f:
+    with open("./plots/returns_{}.txt".format(training["algo"]), "w") as f:
         for item in returns:
             f.write("{}\n".format(item))
 
-    with open("plots/steps_{}.txt".format(training["algo"]), "w") as f:
+    with open("./plots/steps_{}.txt".format(training["algo"]), "w") as f:
         for item in steps:
             f.write("{}\n".format(item))
 
-    fig.savefig("plots/steps_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
+    fig.savefig("./plots/steps_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
 
     # plt.show()
 
@@ -164,11 +138,11 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
 
         ax.set(xlabel="Training step", ylabel="Entropy", title="Entropy loss during training")
 
-        with open("plots/entropies_{}.txt".format(training["algo"]), "w") as f:
+        with open("./plots/entropies_{}.txt".format(training["algo"]), "w") as f:
             for item in entropies:
                 f.write("{}\n".format(item))
 
-        fig.savefig("plots/entropies_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
+        fig.savefig("./plots/entropies_{}_{}.png".format(training["algo"], datetime.today().strftime("%h%m%d%m%Y")))
 
         # plt.show()
 

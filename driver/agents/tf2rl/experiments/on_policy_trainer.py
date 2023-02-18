@@ -281,3 +281,19 @@ class OnPolicyTrainer(Trainer):
                 tf.uint8)
             tf.summary.image('train/input_img', images, )
         return avg_test_return / self._test_episodes, avg_test_steps / self._test_episodes
+
+    def ppo_test(self):
+        track = "street-1"
+        self._env.set_track(track)
+
+        obs = self._env.reset()
+        obs = unpack_state(obs)
+        while True:
+            act, logp, val = self._policy.get_action_and_val(obs, individual_noise=False, test=False)
+            env_act = np.clip(act, self._env.action_space.low, self._env.action_space.high)
+            next_obs, reward, done = self._env.step(env_act)
+            next_obs = unpack_state(next_obs)
+            obs = next_obs
+            if done:
+                obs = self._env.reset()
+                obs = unpack_state(obs)

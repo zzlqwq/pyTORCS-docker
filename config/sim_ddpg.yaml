@@ -3,39 +3,26 @@ image_name: "zjlqwq/gym_torcs:v1.0"
 
 # run module and path. change to your test script location and function
 mod_name: "main"
-run_path: "driver/run_torcs_tf2rl.py"
+run_path: "driver/run_torcs.py"
 
 # run module and path. change here to your agent algorithm
-algo_name: "PPO_wrapper"
-algo_path: "driver/agents/ppo/ppo_wrapper.py"
+algo_name: "DDPG"
+algo_path: "driver/agents/ddpg/ddpg.py"
 
-# agent hyper parameters
+# agent hyperparameters
 hyperparams:
-  epochs: 20
-  lam: 0.997
-  c_1: 0.8
-  c_2: 0.0001
-  horizon: 4000
-  clip_ratio: 0.2
-
-  actor_lr: 0.00005
-  critic_lr: 0.0005
-  batch_size: 50
-  fcl1_size: 600
-  fcl2_size: 300
+  actor_lr: 0.0001
+  critic_lr: 0.001
+  batch_size: 32
   gamma: 0.99
-
-  tau: 0.001
+  guided_episode: 2
   buf_size: 100000
-  n_warmup: 1000
-  update_interval: 2
+  tau: 0.001
+  fcl1_size: 512
+  fcl2_size: 256
   noise_phi: 0.5
 
-  test_interval: 10000
-
-  # dataset_dir : "dataset/"
-  # model_dir: "results/PPO"
-  # model_dir: "results/PPO_new"
+  save_dir: "driver/agents/ddpg/new_model"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -46,8 +33,7 @@ sensors:
   track: 200.0
   angle: 3.1415926
   trackPos: 1.0
-  rpm: 1000000.0
-
+  rpm: 10000.0
 
 # DO NOT CHANGE THIS
 # unless you know what you are doing
@@ -57,7 +43,6 @@ driver:
   sid: "SCR"
   ports:
     - 3001
-
 # environment and training related settings
 training:
   # choosen track
@@ -88,10 +73,9 @@ training:
   gear_change: False
   # set number of steps before restarting the episode
   # max 50 steps per second
-  max_steps: 150000
+  max_steps: 100000
+  # total number of episodes
+  episodes: 3000
   # number of passes on data
-  epochs: 12
-  # number of steps before each training
-  train_req: 1000
-  # rl algorithm - change this to choose between DDPG and PPO
-  algo: "DDPG"
+  epochs: 4
+

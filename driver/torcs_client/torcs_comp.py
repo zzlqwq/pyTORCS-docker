@@ -1,5 +1,6 @@
 from gym import spaces
 import numpy as np
+import math
 # from os import path
 import copy
 import collections as col
@@ -19,6 +20,8 @@ class TorcsEnv:
                  privileged=False, driver_id="0", driver_module="scr_server", img_width=640, img_height=480,
                  verbose=False, image_name="zjlqwq/gym_torcs:v1.0"):
 
+        self.obs_prev = None
+        self.action_prev = None
         if ports is None:
             ports = [3001]
         self.throttle = throttle
@@ -45,7 +48,6 @@ class TorcsEnv:
         self.img_height = img_height
 
         # reward class
-        # TODO parametric change
         self.rewarder = LocalReward()
         # self.rewarder = TimeReward()
 
@@ -69,7 +71,7 @@ class TorcsEnv:
             self.state_filter = dict(sorted(state_filter.items()))
         else:
             self.state_filter = {"angle": np.pi, "track": 200.0, "trackPos": 1.0, "speedX": 300.0, "speedY": 300.0,
-                                 "speedZ": 300.0, "wheelSpinVel": 1.0, "rpm": 10000}
+                                 "speedZ": 300.0, "wheelSpinVel": 1.0, "rpm": 1000000}
 
         self.observation_space, self.action_space = self.build_spaces(self.state_filter, throttle)
 
@@ -93,8 +95,8 @@ class TorcsEnv:
         high = np.array([])
         low = np.array([])
         if "angle" in state_filter:
-            high = np.append(high, 1.0)
-            low = np.append(low, -1.0)
+            high = np.append(high, math.pi)
+            low = np.append(low, -math.pi)
         if "rpm" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, 0.0)
@@ -109,8 +111,8 @@ class TorcsEnv:
             low = np.append(low, -np.inf)
         if "track" in state_filter:
             # the track rangefinder is made of 19 separate values
-            high = np.append(high, np.ones(19))
-            low = np.append(low, np.zeros(19))
+            high = np.append(high, np.full(19, np.inf))
+            low = np.append(low, np.full(19, np.inf))
         if "trackPos" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, -np.inf)
@@ -126,7 +128,7 @@ class TorcsEnv:
         if throttle is False:
             action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
         else:
-            action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+            action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
 
         return observation_space, action_space
 
@@ -139,7 +141,7 @@ class TorcsEnv:
             # TODO restart torcs if multiple errors
             log.error("Could not receive from torcs")
 
-        action = self.agent_to_torcs(u)
+        action = self.action_to_torcs(u)
 
         self.client.R.d["steer"] = action["steer"]
 
@@ -158,7 +160,7 @@ class TorcsEnv:
             if self.gear_change is False:
                 # debounce used to avoid shifting 2 or more gears at once ( engine did not have the time to slow down )
                 self.shift_debounce -= 1
-                self.client.R.d["gear"] = self.automatic_gearbox(obs_curr["rpm"], self.client.R.d["gear"])
+                self.client.R.d["gear"] = self.simple_gearbox(obs_curr["speedX"])
             else:
                 self.client.R.d["gear"] = action["gear"]
         except Exception:
@@ -207,7 +209,7 @@ class TorcsEnv:
         self.action_prev = action
         self.obs_prev = obs_new
 
-        return self.make_observaton(obs_new), reward, episode_terminate
+        return self.make_observation(obs_new), reward, episode_terminate
 
     def reset(self):
         if self.verbose: log.info("Reset torcs")
@@ -215,7 +217,7 @@ class TorcsEnv:
         vision = "img" in self.state_filter
         first_run = not hasattr(self, "client")
 
-        if self.restart_needed == True:
+        if self.restart_needed:
             self.restart_needed = False
             # launch torcs for the first time
             reset_torcs(self.container_id, vision, True)
@@ -241,7 +243,7 @@ class TorcsEnv:
         # reset reward params
         self.rewarder.reset()
 
-        return self.make_observaton(obs)
+        return self.make_observation(obs)
 
     def terminate(self):
         kill_torcs(self.container_id)
@@ -286,6 +288,21 @@ class TorcsEnv:
 
         return gear
 
+    def simple_gearbox(self, speed_x):
+        gear = 1
+        if speed_x > 50:
+            gear = 2
+        if speed_x > 80:
+            gear = 3
+        if speed_x > 110:
+            gear = 4
+        if speed_x > 140:
+            gear = 5
+        if speed_x > 170:
+            gear = 6
+
+        return gear
+
     def get_max_packets(self):
         return self.client.max_packets
 
@@ -294,7 +311,7 @@ class TorcsEnv:
 
         if self.throttle is True:
             # composite throttle/brake, reduces search space size
-            if (u[1] > 0):
+            if u[1] > 0:
                 # accelerator is upper half
                 torcs_action.update({"accel": u[1]})
                 torcs_action.update({"brake": 0})
@@ -308,7 +325,19 @@ class TorcsEnv:
 
         return torcs_action
 
-    def make_observaton(self, raw_obs):
+    def action_to_torcs(self, u):
+        torcs_action = {'steer': u[0]}
+
+        if self.throttle is True:  # throttle action is enabled
+            torcs_action.update({'accel': u[1]})
+            torcs_action.update({'brake': u[2]})
+
+        if self.gear_change is True:  # gear change action is enabled
+            torcs_action.update({'gear': int(u[3])})
+
+        return torcs_action
+
+    def make_observation(self, raw_obs):
         """
         returns a numpy array with the normalized state values specified in state_filter
         """

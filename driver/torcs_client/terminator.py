@@ -1,9 +1,9 @@
 import numpy as np
 
 # termination over speed starts after speed_term_start steps
-speed_term_start = 1000
+speed_term_start = 300
 # km/h, episode terminates if car is running slower than this limit
-boring_speed = 0.5
+boring_speed = 1
 max_damage = 0
 # tolerance steps for out of track
 out_max = 4

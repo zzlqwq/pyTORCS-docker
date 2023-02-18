@@ -12,7 +12,7 @@ class BaseReward:
 
     def _damage_reward(self, d, d_old):
         if d > d_old:
-            return -100
+            return -1
         else:
             return 0
 
@@ -24,6 +24,7 @@ class BaseReward:
             return -self.base_reward
 
     def on_track_reward(self, track_pos, speed_x):
+        # normal_speed = speed_x / 300
         return -speed_x * np.abs(track_pos)
 
     def get_reward(self, obs, obs_prev, action, action_prev, cur_step, terminal, track):
@@ -130,7 +131,8 @@ class LocalReward(BaseReward):
 
         reward += self.__speed_reward(obs["speedX"], obs["angle"])
         # print("speed_reward is ", self.__speed_reward(obs["speedX"], obs["angle"]) * self.speed_w)
-        reward += self.__speed_reward2(obs["speedX"], obs["angle"]) * self.speed_w_2
+        reward += self.__speed_reward2(obs["speedX"], obs["angle"])
+        reward += self._damage_reward(obs["damage"], obs_prev["damage"])
         # print("speed_reward2 is ", self.__speed_reward2(obs["speedX"], obs["angle"]) * self.speed_w_2)
         # reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"]) * self.dist_w
         # travel distance reward
