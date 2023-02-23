@@ -2,6 +2,7 @@ import numpy as np
 import collections
 import time
 import os
+import matplotlib.pyplot as plt
 
 from torcs_client.torcs_comp import TorcsEnv
 from torcs_client.utils import SimpleLogger as log, resize_frame, agent_from_module
@@ -48,6 +49,9 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
     agent = agent_class(state_dims=state_dims, action_dims=action_dims,
                         action_boundaries=action_boundaries, hyperparams=hyperparams)
 
+    # 开启交互模式
+    # plt.ion()
+    # plt.figure(1)
     # 保存每个回合的得分
     scores = []
 
@@ -63,8 +67,6 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
             # 该回合走的步数
             curr_step = 0
 
-            log.info("Episode {}/{} started".format(i + 1, episodes))
-
             while not terminal and (curr_step < max_steps):
                 # predict new action
                 action = agent.get_action(state, i, track, is_training)
@@ -74,20 +76,20 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
                 agent.remember(state, state_new, action, reward, terminal)
 
                 # train the agent
-                time_start = time.time()
-                loss = agent.learn()
-                time_end = time.time()
-                log.info("time cost: {} ms , loss {}".format(1000 * (time_end - time_start), loss))
+                agent.learn()
 
                 curr_step += 1
                 score += reward
                 state = state_new
 
             # 每30回合保存一次模型
-            if (i % 30) and (i > 0) == 0:
+            if (i % 30) == 0 and (i > 0):
                 agent.save_models()
                 log.info("Saving models...")
             scores.append(score)
+            # 画出每个回合的得分
+            # plt.plot(scores)
+            # plt.pause(0.001)
             log.info("Episode {}/{} finished. Score {:.2f}. Running average {:.2f}".format(i + 1, episodes, score,
                                                                                            np.mean(scores)))
 

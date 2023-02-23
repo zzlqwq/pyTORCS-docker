@@ -3,6 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
+from keras import backend as K
 
 import os
 import time
@@ -97,7 +98,7 @@ class DDPG(object):
 
         state = self._memory.unpack_state(state)
         state = tf.expand_dims(state, axis=0)
-        action = self.actor.model.predict(state)[0]
+        action = self.actor.model.predict(state, verbose=0)[0]
         noise = np.zeros([1, self.n_actions])
         action_p = np.zeros(self.n_actions)
 
@@ -158,6 +159,7 @@ class DDPG(object):
         # update the target models
         self.critic.update_target()
         self.actor.update_target()
+        K.clear_session()
         return actor_loss
 
     def train_critic(self, states, actions, rewards, terminal, states_n):
