@@ -10,18 +10,17 @@ class BaseReward:
         self.track = ""
         self.base_reward = 1
 
-    def _damage_reward(self, d, d_old):
+    def damage_reward(self, d, d_old):
         if d > d_old:
-            return -100
+            return -300
         else:
             return 0
 
-    def _on_track_reward(self, track_pos):
-        on_track = np.abs(track_pos) < 1
-        if on_track is True:
-            return self.base_reward
+    def out_track_reward(self, track_pos):
+        if np.abs(track_pos) >= 1:
+            return -300
         else:
-            return -self.base_reward
+            return 0
 
     def on_track_reward(self, track_pos, speed_x):
         return -speed_x * np.abs(track_pos)
@@ -55,13 +54,13 @@ class LocalReward(BaseReward):
     rangefinder_angles = [-45, -19, -12, -7, -4, -2.5, -1.7, -1, -.5, 0, .5, 1, 1.7, 2.5, 4, 7, 12, 19, 45]
 
     def __dist_reward(self, d, d_old):
-        return np.clip(d - d_old, 0, 5)
+        return np.clip(d - d_old, 0, 100)
 
-    def __speed_reward(self, speed, angle):
+    def cos_speed_reward(self, speed, angle):
         # norm_speed = speed / 300
         return speed * np.cos(angle)
 
-    def __speed_reward2(self, speed, angle):
+    def sin_speed_reward(self, speed, angle):
         # norm_speed = speed / 300
         return -np.abs(speed * np.sin(angle))
 
@@ -88,9 +87,9 @@ class LocalReward(BaseReward):
             return 1
         return 0
 
-    def __wobbly_reward(self, steering, steering_old):
-        if np.abs(np.abs(steering) - np.abs(steering_old)) > self.steering_threshold:
-            return -0.1
+    def wobbly_reward(self, steering, steering_old):
+        if (steering * steering_old < 0) and (abs(steering) + abs(steering_old) > 0.15):
+            return -150
         return 0
 
     def __breaking_reward(self, speed, brake):
@@ -104,35 +103,39 @@ class LocalReward(BaseReward):
             return -100
         return 0
 
-    def _spin_reward(self, angle):
+    def spin_reward(self, angle):
         if np.cos(angle) < 0:
-            return -100
+            return -300
         return 0
 
     def __local_reward(self, obs, obs_prev, action, action_prev, cur_step, terminal):
 
-        # basic reward
         reward = 0
-        # reward = self._on_track_reward(obs["trackPos"]) * self.base_w
+        # publish going out of track
+        reward += self.out_track_reward(obs["trackPos"])
+        # punishment for damage
+        reward += self.damage_reward(obs["damage"], obs_prev["damage"])
+        # punish wobbling
+        reward += self.wobbly_reward(action["steer"], action_prev["steer"])
+        # punish spin
+        reward += self.spin_reward(obs["angle"])
+
+        # reward for going straight
+        reward += 1.5 * self.cos_speed_reward(obs["speedX"], obs["angle"])
+        reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
 
         # behaviour terminal rewards
         # reward += self._oot_reward(obs["trackPos"]) * self.terminal_w
         # reward += self._spin_reward(obs["angle"]) * self.terminal_w
-        # punishment for damage
-        # reward += self._damage_reward(obs["damage"], obs_prev["damage"]) * 1.0
 
         # track reward
         # print("trackPos, speedX, angle is ", obs["trackPos"], obs["speedX"], obs["angle"])
-        reward += self.on_track_reward(obs["trackPos"], obs["speedX"])
+        # reward += self.on_track_reward(obs["trackPos"], obs["speedX"])
         # print("on_track_reward is ", self.on_track_reward(obs["trackPos"], obs["speedX"]) * 1.0)
 
-        # speed rewards
-
-        reward += self.__speed_reward(obs["speedX"], obs["angle"])
         # print("speed_reward is ", self.__speed_reward(obs["speedX"], obs["angle"]) * self.speed_w)
-        reward += self.__speed_reward2(obs["speedX"], obs["angle"]) * self.speed_w_2
         # print("speed_reward2 is ", self.__speed_reward2(obs["speedX"], obs["angle"]) * self.speed_w_2)
-        # reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"]) * self.dist_w
+        # reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"])
         # travel distance reward
 
         # direction dependent rewards
@@ -144,8 +147,6 @@ class LocalReward(BaseReward):
         # behaviour rewards
         # reward going straight
         # reward += self.__straight_line_reward(action["steer"], obs["speedX"]) * self.steer_w
-        # punish wobbling
-        # reward += self.__wobbly_reward(action["steer"], action_prev["steer"]) * self.wobble_w
         # punish breaking when going slow
         # reward += self.__breaking_reward(action["brake"], obs["speedX"]) * self.break_w
         # print("this reward is ", reward)
@@ -207,7 +208,7 @@ class TimeReward(BaseReward):
             # if still in sector nothing
             reward = 0
 
-        reward += self._damage_reward(obs["damage"], obs_prev["damage"]) * self.damage_w
+        reward += self.damage_reward(obs["damage"], obs_prev["damage"]) * self.damage_w
 
         # punish for not moving forward
         if terminal and self.curr_sector == 0:

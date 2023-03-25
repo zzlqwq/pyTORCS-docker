@@ -17,7 +17,7 @@
 	<attstr name="desc" val=""/>
 	<attstr name="team" val=""/>
 	<attstr name="author" val="Daniele Loiacono"/>
-	<attstr name="car name" val="car1-trb1"/>
+	<attstr name="car name" val="car1-stock1"/>
 	<attnum name="race number" val="1"/>
 	<attnum name="red" val="1.0"/>
 	<attnum name="green" val="1.0"/>

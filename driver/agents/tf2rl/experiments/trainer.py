@@ -77,6 +77,9 @@ class Trainer:
         self.writer = tf.summary.create_file_writer(self._output_dir)
         self.writer.set_as_default()
 
+        self._best_test_return = 0
+        self._best_test_duration = 1000000
+
     def _set_check_point(self, model_dir):
         # Save and restore model
         self._checkpoint = tf.train.Checkpoint(policy=self._policy)
@@ -153,14 +156,13 @@ class Trainer:
                 else:
                     action = self._policy.get_action(obs)
 
-                # if n_episode % 60 == 0 and episode_steps < 1000 and n_episode < 500:
-                #     print("n_episode: ", n_episode, "episode_steps: ", episode_steps)
-                #     action = self.simple_controller(obs)
+                if n_episode == 0 and episode_steps < 1000:
+                    print("n_episode: ", n_episode, "episode_steps: ", episode_steps)
+                    action = self.simple_controller(obs)
 
                 next_obs, reward, done = self._env.step(action)
                 next_obs = unpack_state(next_obs)
-                if self._show_progress:
-                    self._env.render()
+
                 episode_steps += 1
                 episode_return += reward
                 total_steps += 1
@@ -215,7 +217,7 @@ class Trainer:
                             samples["indexes"], np.abs(td_error) + 1e-6)
 
                 if total_steps % self._test_interval == 0:
-                    avg_test_return, avg_test_steps = self.evaluate_policy(total_steps)
+                    avg_test_return, avg_test_steps, duration = self.evaluate_policy(total_steps)
                     self.logger.info(
                         "Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
                             total_steps, avg_test_return, self._test_episodes))
@@ -225,9 +227,14 @@ class Trainer:
                         name="Common/average_test_episode_length", data=avg_test_steps)
                     tf.summary.scalar(name="Common/fps", data=fps)
 
-                if total_steps % self._save_model_interval == 0:
-                    self.logger.info("Saving checkpoint")
-                    self.checkpoint_manager.save()
+                    if avg_test_return > self._best_test_return and duration < self._best_test_duration:
+                        self._best_test_return = avg_test_return
+                        self._best_test_duration = duration
+                        print("best test return: ", self._best_test_return)
+                        print("best test duration: ", self._best_test_duration)
+                        self.logger.info("Saving checkpoint")
+                        self.checkpoint_manager.save()
+
             if n_episode % 60 != 0 or n_episode > 500:
                 returns.append(episode_return)
                 steps.append(episode_steps)
@@ -235,6 +242,18 @@ class Trainer:
         tf.summary.flush()
 
         return returns, steps, []
+
+    def test(self):
+        self._env.set_track("b-speedway")
+        while True:
+            obs = self._env.reset()
+            obs = unpack_state(obs)
+            done = False
+            while not done:
+                action = self._policy.get_action(obs, test=1)
+                next_obs, reward, done = self._env.step(action)
+                next_obs = unpack_state(next_obs)
+                obs = next_obs
 
     def evaluate_policy_continuously(self):
         """
@@ -269,6 +288,8 @@ class Trainer:
             obs = self._test_env.reset()
             obs = unpack_state(obs)
             avg_test_steps += 1
+            episode_start_time = time.perf_counter()
+            duration = 0
             for _ in range(self._episode_max_steps):
                 action = self._policy.get_action(obs, test=True)
                 next_obs, reward, done = self._test_env.step(action)
@@ -285,6 +306,7 @@ class Trainer:
                 episode_return += reward
                 obs = next_obs
                 if done:
+                    duration = time.perf_counter() - episode_start_time
                     break
             prefix = "step_{0:08d}_epi_{1:02d}_return_{2:010.4f}".format(
                 total_steps, i, episode_return)
@@ -300,7 +322,7 @@ class Trainer:
                 tf.expand_dims(np.array(obs).transpose(2, 0, 1), axis=3),
                 tf.uint8)
             tf.summary.image('train/input_img', images, )
-        return avg_test_return / self._test_episodes, avg_test_steps / self._test_episodes
+        return avg_test_return / self._test_episodes, avg_test_steps / self._test_episodes, duration
 
     def _set_from_args(self, args):
         # experiment settings

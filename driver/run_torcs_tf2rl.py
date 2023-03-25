@@ -5,19 +5,20 @@ from datetime import datetime
 from torcs_client.torcs_comp import TorcsEnv
 
 
-def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_torcs:v1.0", driver=None,
+def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_torcs:v1.2", driver=None,
          privileged=False, training=None, algo_name=None, algo_path=None, stack_depth=1, img_width=640, img_height=480):
+    # PPO epochs
     n_epochs = 5
-
     if "epochs" in training.keys(): n_epochs = training["epochs"]
 
+    # track and car selection
     track_list = [None]
     car = None
-
     if "track" in training.keys(): track_list = training["track"]
     if "car" in training.keys(): car = training["car"]
 
-    if driver != None:
+    # UDP port selection(Don't change this)
+    if driver is not None:
         sid = driver["sid"]
         ports = driver["ports"]
         driver_id = driver["index"]
@@ -33,12 +34,8 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
                    verbose=verbose, state_filter=sensors, target_speed=training["target_speed"], sid=sid,
                    ports=ports, driver_id=driver_id, driver_module=driver_module, image_name=image_name,
                    privileged=privileged, img_width=img_width, img_height=img_height)
-
+    # Env for testing
     test_env = env
-
-    # action_dims = [env.action_space.shape[0]]
-    # state_dims = [env.observation_space.shape[0]]  # sensors input
-    # action_boundaries = [env.action_space.low[0], env.action_space.high[0]]
 
     args = {"test_episodes": 1, "test_interval": hyperparams["test_interval"],
             "save_summary_interval": hyperparams["test_interval"], "save_model_interval": hyperparams["test_interval"],
@@ -131,7 +128,7 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
     #     trainer = IRLTrainer(agent, env, args, discriminator, expert_trajs["state"], expert_trajs["state_new"], expert_trajs["action"], test_env)
 
     returns, steps, entropies = trainer(track_list)
-
+    # trainer.test()
     # plotting
     matplotlib.use("Agg")
 

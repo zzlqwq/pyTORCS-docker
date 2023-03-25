@@ -14,10 +14,10 @@ from torcs_client.utils import SimpleLogger as log, start_container, reset_torcs
 
 
 class TorcsEnv:
-    def __init__(self, throttle=False, gear_change=False, car="car1-trb1", state_filter=None, target_speed=50,
+    def __init__(self, throttle=False, gear_change=False, car="car1-stock1", state_filter=None, target_speed=50,
                  sid="SCR", ports=None,
                  privileged=False, driver_id="0", driver_module="scr_server", img_width=640, img_height=480,
-                 verbose=False, image_name="zjlqwq/gym_torcs:v1.0"):
+                 verbose=False, image_name="zjlqwq/gym_torcs:v1.2"):
 
         if ports is None:
             ports = [3001]
@@ -45,11 +45,10 @@ class TorcsEnv:
         self.img_height = img_height
 
         # reward class
-        # TODO parametric change
         self.rewarder = LocalReward()
         # self.rewarder = TimeReward()
 
-        # TODO support other races
+        # Add tracks should add the name of the track in the dictionary
         self.race_type = "practice"
         self.tracks_categories = {"dirt": ["dirt-1", "dirt-2", "dirt-3", "dirt-4", "dirt-5", "dirt-6", "mixed-1",
                                            "mixed-2"],
@@ -58,7 +57,7 @@ class TorcsEnv:
                                            "e-track-6", "g-track-3", "ruudskogen", "wheel-1", "brondehach", "e-track-2",
                                            "forza", "spring", "wheel-2",
                                            "aalborg", "e-track-1", "e-track-5", "e-track-1", "e-track-5", "eroad",
-                                           "e-track-4", "g-track-1"],
+                                           "e-track-4", "g-track-1", "Zongxoi-city", "Rauleswor-desert"],
                                   "oval": ["a-speedway", "b-speedway", "e-speedway", "g-speedway", "michigan",
                                            "c-speedway", "d-speedway", "f-speedway"]}
 
@@ -69,7 +68,7 @@ class TorcsEnv:
             self.state_filter = dict(sorted(state_filter.items()))
         else:
             self.state_filter = {"angle": np.pi, "track": 200.0, "trackPos": 1.0, "speedX": 300.0, "speedY": 300.0,
-                                 "speedZ": 300.0, "wheelSpinVel": 1.0, "rpm": 10000}
+                                 "speedZ": 300.0, "wheelSpinVel": 100.0, "rpm": 10000}
 
         self.observation_space, self.action_space = self.build_spaces(self.state_filter, throttle)
 
@@ -93,8 +92,8 @@ class TorcsEnv:
         high = np.array([])
         low = np.array([])
         if "angle" in state_filter:
-            high = np.append(high, 1.0)
-            low = np.append(low, -1.0)
+            high = np.append(high, np.pi)
+            low = np.append(low, -np.pi)
         if "rpm" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, 0.0)
@@ -110,7 +109,7 @@ class TorcsEnv:
         if "track" in state_filter:
             # the track rangefinder is made of 19 separate values
             high = np.append(high, np.ones(19))
-            low = np.append(low, np.zeros(19))
+            low = np.append(low, -np.ones(19))
         if "trackPos" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, -np.inf)
@@ -182,6 +181,7 @@ class TorcsEnv:
         try:
             episode_terminate = custom_terminal(obs_new, curr_step=self.curr_step)
         except Exception:
+            log.error("Something is wrong in the terminal function")
             episode_terminate = False
 
         # Reward
@@ -215,7 +215,7 @@ class TorcsEnv:
         vision = "img" in self.state_filter
         first_run = not hasattr(self, "client")
 
-        if self.restart_needed == True:
+        if self.restart_needed:
             self.restart_needed = False
             # launch torcs for the first time
             reset_torcs(self.container_id, vision, True)
@@ -319,6 +319,7 @@ class TorcsEnv:
                 obs[cat] = par
             except Exception:
                 # one of your sensors was not in the incoming string
-                pass
+                log.error("Sensor {} not found in observation".format(cat))
+                exit(1)
 
         return obs

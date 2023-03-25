@@ -2,10 +2,12 @@ import subprocess
 import argparse
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="pyTORCS: TORCS-based environment for simple autonomous driving simulations.")
-    parser.add_argument("--config", help="Path to the yaml config file.", default="config/sim_ddpg.yaml", type=str)
+    parser = argparse.ArgumentParser(
+        description="pyTORCS: TORCS-based environment for simple autonomous driving simulations.")
+    parser.add_argument("--config", help="Path to the yaml config file.", default="config/sim_tf2rl.yaml", type=str)
     parser.add_argument("-v", "--verbose", help="Set verbose.", default=False, action="store_true")
-    parser.add_argument("--privileged", help="Set privileged. Attempts to solve the NVML runtime docker issue.", default=False, action="store_true")
+    parser.add_argument("--privileged", help="Set privileged. Attempts to solve the NVML runtime docker issue.",
+                        default=False, action="store_true")
     parser.add_argument("-c", "--console", help="Your console of choice.", default="", type=str)
 
     args = parser.parse_args()
@@ -20,10 +22,10 @@ if __name__ == "__main__":
 
     launch_command.extend(["python", "driver/launch.py", "--config", args.config])
 
-    if args.verbose == True:
+    if args.verbose:
         launch_command.append("--verbose")
 
-    if args.privileged == True:
+    if args.privileged:
         launch_command.append("--privileged")
 
     if args.console != "":

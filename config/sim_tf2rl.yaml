@@ -1,5 +1,5 @@
 # docker image name
-image_name: "zjlqwq/gym_torcs:v1.0"
+image_name: "zjlqwq/gym_torcs:v1.2"
 
 # run module and path. change to your test script location and function
 mod_name: "main"
@@ -21,21 +21,21 @@ hyperparams:
   actor_lr: 0.00005
   critic_lr: 0.0005
   batch_size: 50
-  fcl1_size: 300
-  fcl2_size: 600
+  fcl1_size: 600
+  fcl2_size: 300
   gamma: 0.99
 
   tau: 0.005
   buf_size: 100000
   n_warmup: 1000
   update_interval: 2
-  noise_phi: 0.5
+  noise_phi: 0
 
   test_interval: 10000
 
-  # dataset_dir : "dataset/"
+#  dataset_dir : "dataset/"
 #  model_dir: "results/PPO"
-#  model_dir : "results/DDPG_new"
+  model_dir : "results/20230323T152123.396178_DDPG_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -69,7 +69,7 @@ training:
   #
   # OVAL : michigan
   track:
-    - "aalborg"
+    - "b-speedway"
   #    - "street-1"
   #    - "michigan"
   #    - "g-track-1"
@@ -79,7 +79,7 @@ training:
   # RALLY: pw-imprezawrc pw-306wrc
   # GT: car1-trb1
   # OPEN WHEEL: car1-ow1
-  car: "car1-trb1"
+  car: "car1-stock1"
 
   # manual throttle control
   throttle: True
@@ -88,7 +88,7 @@ training:
   gear_change: False
   # set number of steps before restarting the episode
   # max 50 steps per second
-  max_steps: 100000
+  max_steps: 2500000
   # number of passes on data
   epochs: 12
   # number of steps before each training
