@@ -39,8 +39,6 @@ class TorcsEnv:
         else:
             self.container_id = "0"
 
-        self.shift_debounce = 0
-
         self.img_width = img_width
         self.img_height = img_height
 
@@ -155,9 +153,7 @@ class TorcsEnv:
 
         try:
             if self.gear_change is False:
-                # debounce used to avoid shifting 2 or more gears at once ( engine did not have the time to slow down )
-                self.shift_debounce -= 1
-                self.client.R.d["gear"] = self.automatic_gearbox(obs_curr["rpm"], self.client.R.d["gear"])
+                self.client.R.d["gear"] = self.automatic_gearbox(obs_curr["speedX"], self.client.R.d["gear"])
             else:
                 self.client.R.d["gear"] = action["gear"]
         except Exception:
@@ -276,13 +272,47 @@ class TorcsEnv:
 
         return accel
 
-    def automatic_gearbox(self, rpm, gear):
-        if rpm > 9500 and gear < 6 and self.shift_debounce <= 0:
-            self.shift_debounce = 5
-            gear += 1
-        if rpm < 4500 and gear > 1 and self.shift_debounce <= 0:
-            self.shift_debounce = 5
-            gear -= 1
+    def automatic_gearbox(self, speed_x, gear):
+        if gear == 1:
+            if speed_x > 60:
+                gear = 2
+            else:
+                gear = 1
+        elif gear == 2:
+            if speed_x <= 45:
+                gear = 1
+            elif speed_x > 105:
+                gear = 3
+            else:
+                gear = 2
+        elif gear == 3:
+            if speed_x <= 90:
+                gear = 2
+            elif speed_x > 145:
+                gear = 4
+            else:
+                gear = 3
+        elif gear == 4:
+            if speed_x <= 131:
+                gear = 3
+            elif speed_x >= 187:
+                gear = 5
+            else:
+                gear = 4
+        elif gear == 5:
+            if speed_x <= 173:
+                gear = 4
+            elif speed_x >= 234:
+                gear = 6
+            else:
+                gear = 5
+        elif gear == 6:
+            if speed_x <= 219:
+                gear = 5
+            else:
+                gear = 6
+        else:
+            gear = 1
 
         return gear
 

@@ -111,7 +111,7 @@ class DDPG(OffPolicyAgent):
                 self.step = self.step - 1 / 1000000
                 if self.step < 0:
                     self.step = 0
-                action += self.step * tf.random.normal(shape=action.shape, mean=0., stddev=sigma, dtype=tf.float32)
+                action += tf.random.normal(shape=action.shape, mean=0., stddev=sigma, dtype=tf.float32)
             return tf.clip_by_value(action, -max_action, max_action)
 
     def train(self, states, actions, next_states, rewards, done, weights=None):

@@ -26,7 +26,7 @@ hyperparams:
   gamma: 0.99
 
   tau: 0.005
-  buf_size: 100000
+  buf_size: 2500000
   n_warmup: 1000
   update_interval: 2
   noise_phi: 0
@@ -34,8 +34,7 @@ hyperparams:
   test_interval: 10000
 
 #  dataset_dir : "dataset/"
-#  model_dir: "results/PPO"
-  model_dir : "results/20230323T152123.396178_DDPG_"
+  model_dir: "results/20230418T164145.286841_SAC_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -69,10 +68,7 @@ training:
   #
   # OVAL : michigan
   track:
-    - "b-speedway"
-  #    - "street-1"
-  #    - "michigan"
-  #    - "g-track-1"
+    - "aalborg"
 
   # choosen car
   # can be choosen between
@@ -94,4 +90,4 @@ training:
   # number of steps before each training
   train_req: 1000
   # rl algorithm - change this to choose between DDPG and PPO
-  algo: "DDPG"
+  algo: "SAC"

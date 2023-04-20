@@ -95,7 +95,7 @@ class Trainer:
     def simple_controller(self, state):
         action = np.zeros(2)
 
-        speedX = state[0] * 300
+        speedX = abs(state[0] * 300)
         # steer to corner
         steer = state[3] * 19
         # # steer to center
@@ -157,7 +157,6 @@ class Trainer:
                     action = self._policy.get_action(obs)
 
                 if n_episode == 0 and episode_steps < 1000:
-                    print("n_episode: ", n_episode, "episode_steps: ", episode_steps)
                     action = self.simple_controller(obs)
 
                 next_obs, reward, done = self._env.step(action)
@@ -227,7 +226,7 @@ class Trainer:
                         name="Common/average_test_episode_length", data=avg_test_steps)
                     tf.summary.scalar(name="Common/fps", data=fps)
 
-                    if avg_test_return > self._best_test_return and duration < self._best_test_duration:
+                    if avg_test_return > self._best_test_return:
                         self._best_test_return = avg_test_return
                         self._best_test_duration = duration
                         print("best test return: ", self._best_test_return)
@@ -244,7 +243,7 @@ class Trainer:
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("b-speedway")
+        self._env.set_track("aalborg")
         while True:
             obs = self._env.reset()
             obs = unpack_state(obs)

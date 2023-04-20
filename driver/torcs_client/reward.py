@@ -121,7 +121,7 @@ class LocalReward(BaseReward):
         reward += self.spin_reward(obs["angle"])
 
         # reward for going straight
-        reward += 1.5 * self.cos_speed_reward(obs["speedX"], obs["angle"])
+        reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
         reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
 
         # behaviour terminal rewards

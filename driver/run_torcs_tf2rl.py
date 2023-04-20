@@ -97,38 +97,28 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
         )
 
         trainer = Trainer(agent, env, args, test_env=test_env)
-    # elif training["algo"] == "GAIL":
-    #     from agents.tf2rl.algos.ddpg import DDPG
-    #     from agents.tf2rl.algos.gail import GAIL
-    #     from agents.tf2rl.experiments.irl_trainer import IRLTrainer
-    #     from agents.tf2rl.experiments.utils import load_expert_traj
-    #
-    #     agent = DDPG(
-    #         state_shape = env.observation_space.shape,
-    #         action_dim = env.action_space.high.size,
-    #         memory_capacity = hyperparams["buf_size"],
-    #         max_action = env.action_space.high[0],
-    #         batch_size = hyperparams["batch_size"],
-    #         actor_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-    #         critic_units = (hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
-    #         lr_actor = hyperparams["actor_lr"],
-    #         tau = hyperparams["tau"],
-    #         lr_critic = hyperparams["critic_lr"],
-    #         n_warmup = hyperparams["n_warmup"],
-    #         update_interval = hyperparams["update_interval"]
-    #     )
-    #
-    #     discriminator = GAIL(
-    #         state_shape = env.observation_space.shape,
-    #         action_dim = env.action_space.high.size,
-    #         units = [100, 100],
-    #         batch_size = hyperparams["batch_size"]
-    #     )
-    #     expert_trajs = load_expert_traj(hyperparams["dataset_dir"])
-    #     trainer = IRLTrainer(agent, env, args, discriminator, expert_trajs["state"], expert_trajs["state_new"], expert_trajs["action"], test_env)
 
-    returns, steps, entropies = trainer(track_list)
-    # trainer.test()
+    elif training["algo"] == "SAC":
+        from agents.tf2rl.algos.sac import SAC
+        from agents.tf2rl.experiments.trainer import Trainer
+
+        agent = SAC(
+            state_shape=env.observation_space.shape,
+            action_dim=env.action_space.high.size,
+            memory_capacity=hyperparams["buf_size"],
+            max_action=env.action_space.high[0],
+            batch_size=hyperparams["batch_size"],
+            actor_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            critic_units=(hyperparams["fcl1_size"], hyperparams["fcl2_size"]),
+            tau=hyperparams["tau"],
+            n_warmup=hyperparams["n_warmup"],
+            update_interval=hyperparams["update_interval"]
+        )
+        trainer = Trainer(agent, env, args, test_env=test_env)
+
+    # returns, steps, entropies = trainer(track_list)
+
+    trainer.test()
     # plotting
     matplotlib.use("Agg")
 
