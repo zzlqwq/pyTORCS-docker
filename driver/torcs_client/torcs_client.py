@@ -12,7 +12,7 @@ import sysv_ipc as ipc
 from torcs_client.utils import SimpleLogger as log, reset_torcs, destringify, raw_to_rgb
 
 # max message length
-UDP_MSGLEN = 1000
+UDP_MSGLEN = 5000
 
 SHMKEY = 1234
 

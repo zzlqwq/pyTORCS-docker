@@ -1,5 +1,5 @@
 # docker image name
-image_name: "zjlqwq/gym_torcs:v1.2"
+image_name: "my_torcs:v1.0"
 
 # run module and path. change to your test script location and function
 mod_name: "main"
@@ -34,18 +34,26 @@ hyperparams:
   test_interval: 10000
 
 #  dataset_dir : "dataset/"
-  model_dir: "results/20230418T164145.286841_SAC_"
+#  model_dir: "results/20230418T164145.286841_SAC_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
   speedX: 300.0
-  speedZ: 300.0
   speedY: 300.0
-  wheelSpinVel: 100.0
-  track: 200.0
-  angle: 3.1415926
+  speedZ: 300.0
+
+  accX: 20.0
+  accY: 20.0
+  accZ: 20.0
+
+  midLine: 200.0
   trackPos: 1.0
+
+  angle: 3.1415926
+  yaw_rate: 3.1415926
+
   rpm: 10000.0
+
 
 
 # DO NOT CHANGE THIS
@@ -90,4 +98,4 @@ training:
   # number of steps before each training
   train_req: 1000
   # rl algorithm - change this to choose between DDPG and PPO
-  algo: "SAC"
+  algo: "DDPG"

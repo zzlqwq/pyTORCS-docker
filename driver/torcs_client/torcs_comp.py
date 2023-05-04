@@ -89,12 +89,18 @@ class TorcsEnv:
         # state space
         high = np.array([])
         low = np.array([])
+        if "midLine" in state_filter:
+            high = np.append(high, np.ones(400))
+            low = np.append(low, -np.ones(400))
         if "angle" in state_filter:
             high = np.append(high, np.pi)
             low = np.append(low, -np.pi)
         if "rpm" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, 0.0)
+        if "yaw_rate" in state_filter:
+            high = np.append(high, np.inf)
+            low = np.append(low, -np.inf)
         if "speedX" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, -np.inf)
@@ -104,17 +110,18 @@ class TorcsEnv:
         if "speedZ" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, -np.inf)
-        if "track" in state_filter:
-            # the track rangefinder is made of 19 separate values
-            high = np.append(high, np.ones(19))
-            low = np.append(low, -np.ones(19))
+        if "accX" in state_filter:
+            high = np.append(high, np.inf)
+            low = np.append(low, -np.inf)
+        if "accY" in state_filter:
+            high = np.append(high, np.inf)
+            low = np.append(low, -np.inf)
+        if "accZ" in state_filter:
+            high = np.append(high, np.inf)
+            low = np.append(low, -np.inf)
         if "trackPos" in state_filter:
             high = np.append(high, np.inf)
             low = np.append(low, -np.inf)
-        if "wheelSpinVel" in state_filter:
-            # one value each wheel
-            high = np.append(high, np.array([np.inf, np.inf, np.inf, np.inf]))
-            low = np.append(low, np.zeros(4))
 
         observation_space = spaces.Box(low=np.float32(low), high=np.float32(high), dtype=np.float32)
 

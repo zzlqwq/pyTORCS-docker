@@ -25,16 +25,19 @@ def unpack_state(state):
     """
     state dict to state array if fixed order
     """
-    state_array = np.zeros(29)
+    state_array = np.zeros(410)
 
-    state_array[0] = state["speedX"]
-    state_array[1] = state["speedY"]
-    state_array[2] = state["speedZ"]
-    state_array[3] = state["angle"]
-    state_array[4] = state["trackPos"]
-    state_array[5:9] = state["wheelSpinVel"]
-    state_array[9:28] = state["track"]
-    state_array[28] = state["rpm"]
+    state_array[0:400] = state["midLine"]
+    state_array[400] = state["trackPos"]
+    state_array[401] = state["speedX"]
+    state_array[402] = state["speedY"]
+    state_array[403] = state["speedZ"]
+    state_array[404] = state["accX"]
+    state_array[405] = state["accY"]
+    state_array[406] = state["accZ"]
+    state_array[407] = state["angle"]
+    state_array[408] = state["yaw_rate"]
+    state_array[409] = state["rpm"]
 
     return state_array
 
