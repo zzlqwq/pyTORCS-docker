@@ -116,7 +116,7 @@ class LocalReward(BaseReward):
         # punishment for damage
         reward += self.damage_reward(obs["damage"], obs_prev["damage"])
         # punish wobbling
-        reward += self.wobbly_reward(action["steer"], action_prev["steer"])
+        # reward += self.wobbly_reward(action["steer"], action_prev["steer"])
         # punish spin
         reward += self.spin_reward(obs["angle"])
 

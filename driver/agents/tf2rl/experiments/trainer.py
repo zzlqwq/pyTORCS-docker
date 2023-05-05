@@ -39,7 +39,9 @@ def unpack_state(state):
     state_array[408] = state["yaw_rate"]
     state_array[409] = state["rpm"]
 
-    return state_array
+    track_sensor = state["track"]
+
+    return state_array, track_sensor
 
 
 class Trainer:
@@ -95,18 +97,18 @@ class Trainer:
             self._checkpoint.restore(self._latest_path_ckpt)
             self.logger.info("Restored {}".format(self._latest_path_ckpt))
 
-    def simple_controller(self, state):
+    def simple_controller(self, state, track_sensor):
         action = np.zeros(2)
 
-        speedX = abs(state[0] * 300)
+        speedX = abs(state[401] * 300)
         # steer to corner
-        steer = state[3] * 19
+        steer = state[407] * 19
         # # steer to center
-        steer -= state[4] * .4
+        steer -= state[400] * .4
 
-        if state[18] < 0.2 and speedX > 55:
+        if track_sensor[9] < 0.3 and speedX > 55:
             # front is getting close (80 mt)
-            accel = -0.4
+            accel = -0.8
         else:
             accel = self.prev_accel
 
@@ -149,9 +151,9 @@ class Trainer:
                 self._policy, self._env, self._use_prioritized_rb,
                 self._use_nstep_rb, self._n_step)
             self._env.set_track(track)
-
+            track_sensor = None
             obs = self._env.reset()
-            obs = unpack_state(obs)
+            obs, track_sensor = unpack_state(obs)
 
             while total_steps < self._max_steps:
                 if total_steps < self._policy.n_warmup:
@@ -159,11 +161,11 @@ class Trainer:
                 else:
                     action = self._policy.get_action(obs)
 
-                if n_episode == 0 and episode_steps < 1000:
-                    action = self.simple_controller(obs)
+                # if n_episode <= 1 and episode_steps < 3000 or n_episode % 15 == 0:
+                #     action = self.simple_controller(obs, track_sensor)
 
                 next_obs, reward, done = self._env.step(action)
-                next_obs = unpack_state(next_obs)
+                next_obs, track_sensor = unpack_state(next_obs)
 
                 episode_steps += 1
                 episode_return += reward
@@ -181,7 +183,7 @@ class Trainer:
                 if done or episode_steps == self._episode_max_steps:
                     replay_buffer.on_episode_end()
                     obs = self._env.reset()
-                    obs = unpack_state(obs)
+                    obs, track_sensor = unpack_state(obs)
                     duration = time.perf_counter() - episode_start_time
                     fps = episode_steps / duration
                     self.logger.info(
@@ -234,8 +236,8 @@ class Trainer:
                         self._best_test_duration = duration
                         print("best test return: ", self._best_test_return)
                         print("best test duration: ", self._best_test_duration)
-                        self.logger.info("Saving checkpoint")
-                        self.checkpoint_manager.save()
+                    self.logger.info("Saving checkpoint")
+                    self.checkpoint_manager.save()
 
             if n_episode % 60 != 0 or n_episode > 500:
                 returns.append(episode_return)
@@ -249,12 +251,12 @@ class Trainer:
         self._env.set_track("aalborg")
         while True:
             obs = self._env.reset()
-            obs = unpack_state(obs)
+            obs, _ = unpack_state(obs)
             done = False
             while not done:
                 action = self._policy.get_action(obs, test=1)
                 next_obs, reward, done = self._env.step(action)
-                next_obs = unpack_state(next_obs)
+                next_obs, _ = unpack_state(next_obs)
                 obs = next_obs
 
     def evaluate_policy_continuously(self):
@@ -288,14 +290,14 @@ class Trainer:
             episode_return = 0.
             frames = []
             obs = self._test_env.reset()
-            obs = unpack_state(obs)
+            obs, _ = unpack_state(obs)
             avg_test_steps += 1
             episode_start_time = time.perf_counter()
             duration = 0
             for _ in range(self._episode_max_steps):
                 action = self._policy.get_action(obs, test=True)
                 next_obs, reward, done = self._test_env.step(action)
-                next_obs = unpack_state(next_obs)
+                next_obs, _ = unpack_state(next_obs)
                 avg_test_steps += 1
                 if self._save_test_path:
                     replay_buffer.add(obs=obs, act=action,

@@ -1,5 +1,5 @@
 # docker image name
-image_name: "my_torcs:v1.0"
+image_name: "zjlqwq/my_torcs:v1.0"
 
 # run module and path. change to your test script location and function
 mod_name: "main"
@@ -26,15 +26,15 @@ hyperparams:
   gamma: 0.99
 
   tau: 0.005
-  buf_size: 2500000
-  n_warmup: 1000
+  buf_size: 100000
+  n_warmup: 0
   update_interval: 2
   noise_phi: 0
 
   test_interval: 10000
 
 #  dataset_dir : "dataset/"
-#  model_dir: "results/20230418T164145.286841_SAC_"
+  model_dir: "results/20230505T103741.799488_DDPG_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -53,6 +53,8 @@ sensors:
   yaw_rate: 3.1415926
 
   rpm: 10000.0
+
+  track: 200.0
 
 
 
