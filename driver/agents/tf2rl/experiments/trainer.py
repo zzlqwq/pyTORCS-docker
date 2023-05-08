@@ -93,7 +93,7 @@ class Trainer:
         # Save and restore model
         self._checkpoint = tf.train.Checkpoint(policy=self._policy)
         self.checkpoint_manager = tf.train.CheckpointManager(
-            self._checkpoint, directory=self._output_dir, max_to_keep=5)
+            self._checkpoint, directory=self._output_dir, max_to_keep=20)
 
         if model_dir is not None:
             assert os.path.isdir(model_dir)
@@ -165,7 +165,7 @@ class Trainer:
                 else:
                     action = self._policy.get_action(obs)
 
-                # if n_episode <= 1 and episode_steps < 3000 or n_episode % 15 == 0:
+                # if n_episode == 0 and episode_steps < 3000 or n_episode % 15 == 0:
                 #     action = self.simple_controller(obs, track_sensor)
 
                 next_obs, reward, done = self._env.step(action)
@@ -190,7 +190,7 @@ class Trainer:
                         self._best_test_duration = game_info["totalTime"]
                         self.logger.info("Saving checkpoint")
                         self.logger.info("Best duration: {}".format(self._best_test_duration))
-                        self.checkpoint_manager.save()
+                        self.checkpoint_manager.save(total_steps)
 
                     self.logger.info(
                         "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} "
@@ -245,7 +245,8 @@ class Trainer:
                         self._best_test_duration = test_duration
                         self.logger.info("Saving checkpoint")
                         self.logger.info("Best duration: {}".format(self._best_test_duration))
-                        self.checkpoint_manager.save()
+                        self.checkpoint_manager.save(total_steps)
+                    self._env.reset()
 
                 if done:
                     episode_start_time = time.perf_counter()
