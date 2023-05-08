@@ -34,7 +34,7 @@ hyperparams:
   test_interval: 10000
 
 #  dataset_dir : "dataset/"
-  model_dir: "results/20230505T103741.799488_DDPG_"
+  model_dir: "results/aalborg-83"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -56,7 +56,9 @@ sensors:
 
   track: 200.0
 
-
+  distRaced: 1.0
+  trackLen: 1.0
+  totalTime: 1.0
 
 # DO NOT CHANGE THIS
 # unless you know what you are doing
