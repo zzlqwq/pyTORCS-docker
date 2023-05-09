@@ -39,7 +39,7 @@ def custom_terminal(obs, curr_step):
         # Episode is terminated if the agent runs backward
         terminal = True
 
-    if obs["distRaced"] > obs["trackLen"] + 0.5:
+    if obs["distRaced"] >= obs["trackLen"]:
         # completed one lap
         terminal = True
     return terminal

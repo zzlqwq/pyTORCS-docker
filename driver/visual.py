@@ -14,7 +14,7 @@ for points in data["data"]:
     y = points[1::2]
     y = [-i for i in y]
     plt.xlim(-20, 20)
-    plt.ylim(-10, 200)
+    plt.ylim(0, 40)
     plt.plot(y, x, 'ro')
     tick += 1
     print(tick)

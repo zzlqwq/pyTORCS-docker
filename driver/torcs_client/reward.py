@@ -54,7 +54,7 @@ class LocalReward(BaseReward):
     rangefinder_angles = [-45, -19, -12, -7, -4, -2.5, -1.7, -1, -.5, 0, .5, 1, 1.7, 2.5, 4, 7, 12, 19, 45]
 
     def __dist_reward(self, d, d_old):
-        return np.clip(d - d_old, 0, 100)
+        return np.clip(d - d_old, 0, 100) * 150
 
     def cos_speed_reward(self, speed, angle):
         # norm_speed = speed / 300
@@ -89,7 +89,7 @@ class LocalReward(BaseReward):
 
     def wobbly_reward(self, steering, steering_old):
         if (steering * steering_old < 0) and (abs(steering) + abs(steering_old) > 0.15):
-            return -150
+            return -100
         return 0
 
     def __breaking_reward(self, speed, brake):
@@ -112,7 +112,7 @@ class LocalReward(BaseReward):
 
         reward = 0
         # publish going out of track
-        reward += self.out_track_reward(obs["trackPos"])
+        # reward += self.out_track_reward(obs["trackPos"])
         # punishment for damage
         reward += self.damage_reward(obs["damage"], obs_prev["damage"])
         # punish wobbling
@@ -121,8 +121,9 @@ class LocalReward(BaseReward):
         reward += self.spin_reward(obs["angle"])
 
         # reward for going straight
-        reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
-        reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
+        # reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
+        # reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
+        reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"])
 
         # behaviour terminal rewards
         # reward += self._oot_reward(obs["trackPos"]) * self.terminal_w

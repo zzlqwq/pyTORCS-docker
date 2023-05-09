@@ -260,7 +260,7 @@ class Trainer:
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("aalborg")
+        self._env.set_track("dirt-3")
         while True:
             obs = self._env.reset()
             obs, _, _ = unpack_state(obs)
