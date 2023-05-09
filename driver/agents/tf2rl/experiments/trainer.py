@@ -87,13 +87,14 @@ class Trainer:
         self.writer = tf.summary.create_file_writer(self._output_dir)
         self.writer.set_as_default()
 
+        self._best_train_duration = 1000000
         self._best_test_duration = 1000000
 
     def _set_check_point(self, model_dir):
         # Save and restore model
         self._checkpoint = tf.train.Checkpoint(policy=self._policy)
         self.checkpoint_manager = tf.train.CheckpointManager(
-            self._checkpoint, directory=self._output_dir, max_to_keep=5)
+            self._checkpoint, directory=self._output_dir, max_to_keep=25)
 
         if model_dir is not None:
             assert os.path.isdir(model_dir)
@@ -186,11 +187,11 @@ class Trainer:
                     fps = episode_steps / duration
 
                     if game_info["distRaced"] >= game_info["trackLen"] and \
-                            duration < self._best_test_duration:
-                        self._best_test_duration = game_info["totalTime"]
+                            duration < self._best_train_duration:
+                        self._best_train_duration = game_info["totalTime"]
                         self.logger.info("Saving checkpoint")
-                        self.logger.info("Best duration: {}".format(self._best_test_duration))
-                        self.checkpoint_manager.save()
+                        self.logger.info("Best duration: {}".format(self._best_train_duration))
+                        self.checkpoint_manager.save(total_steps)
 
                     self.logger.info(
                         "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} "
@@ -245,7 +246,7 @@ class Trainer:
                         self._best_test_duration = test_duration
                         self.logger.info("Saving checkpoint")
                         self.logger.info("Best duration: {}".format(self._best_test_duration))
-                        self.checkpoint_manager.save()
+                        self.checkpoint_manager.save(total_steps)
 
                 if done:
                     episode_start_time = time.perf_counter()
@@ -259,13 +260,13 @@ class Trainer:
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("aalborg")
+        self._env.set_track("dirt-3")
         while True:
             obs = self._env.reset()
             obs, _, _ = unpack_state(obs)
             done = False
             while not done:
-                action = self._policy.get_action(obs, test=1)
+                action = self._policy.get_action(obs, test=1.0)
                 next_obs, reward, done = self._env.step(action)
                 next_obs, _, _ = unpack_state(next_obs)
                 obs = next_obs

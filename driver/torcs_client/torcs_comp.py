@@ -182,7 +182,7 @@ class TorcsEnv:
 
         # Termination condition
         try:
-            episode_terminate = custom_terminal(obs_new, curr_step=self.curr_step)
+            episode_terminate = custom_terminal(obs_new, self.obs_prev, curr_step=self.curr_step)
         except Exception:
             log.error("Something is wrong in the terminal function")
             episode_terminate = False

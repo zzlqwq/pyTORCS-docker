@@ -33,8 +33,8 @@ hyperparams:
 
   test_interval: 10000
 
-#  dataset_dir : "dataset/"
-  model_dir: "results/aalborg-83"
+  #  dataset_dir : "dataset/"
+  model_dir: "results/20230506T204516.023164_DDPG_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -80,7 +80,7 @@ training:
   #
   # OVAL : michigan
   track:
-    - "aalborg"
+    - "dirt-3"
 
   # choosen car
   # can be choosen between

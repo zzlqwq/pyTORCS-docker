@@ -16,6 +16,12 @@ class BaseReward:
         else:
             return 0
 
+    def dirt_damage_reward(self, d, d_old, trackpos):
+        if d > d_old and abs(trackpos) >= 1:
+            return -300
+        else:
+            return 0
+
     def out_track_reward(self, track_pos):
         if np.abs(track_pos) >= 1:
             return -300
@@ -108,22 +114,28 @@ class LocalReward(BaseReward):
             return -300
         return 0
 
+    def accel_reward(self, d, accel):
+        if d >= 2000 and accel >= 0.5:
+            return 150
+        return 0
+
     def __local_reward(self, obs, obs_prev, action, action_prev, cur_step, terminal):
 
         reward = 0
         # publish going out of track
         reward += self.out_track_reward(obs["trackPos"])
         # punishment for damage
-        reward += self.damage_reward(obs["damage"], obs_prev["damage"])
+        reward += self.dirt_damage_reward(obs["damage"], obs_prev["damage"], obs["trackPos"])
         # punish wobbling
         # reward += self.wobbly_reward(action["steer"], action_prev["steer"])
         # punish spin
         reward += self.spin_reward(obs["angle"])
 
         # reward for going straight
-        reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
-        reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
-
+        # reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
+        # reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
+        reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"]) * 150
+        reward += self.accel_reward(obs["distFromStart"], action["accel"])
         # behaviour terminal rewards
         # reward += self._oot_reward(obs["trackPos"]) * self.terminal_w
         # reward += self._spin_reward(obs["angle"]) * self.terminal_w
