@@ -186,7 +186,7 @@ class Trainer:
                     duration = time.perf_counter() - episode_start_time
                     fps = episode_steps / duration
 
-                    if game_info["distRaced"] >= game_info["trackLen"] and \
+                    if game_info["distRaced"] >= (game_info["trackLen"] - 2) and \
                             duration < self._best_train_duration:
                         self._best_train_duration = game_info["totalTime"]
                         self.logger.info("Saving checkpoint")
@@ -260,7 +260,7 @@ class Trainer:
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("dirt-3")
+        self._env.set_track("aalborg")
         while True:
             obs = self._env.reset()
             obs, _, _ = unpack_state(obs)
@@ -312,7 +312,7 @@ class Trainer:
                 obs = next_obs
                 if done:
                     end_time = time.perf_counter()
-                    if game_info["distRaced"] >= game_info["trackLen"]:
+                    if game_info["distRaced"] >= (game_info["trackLen"] - 2):
                         finished = True
                     break
             test_duration = end_time - start_time

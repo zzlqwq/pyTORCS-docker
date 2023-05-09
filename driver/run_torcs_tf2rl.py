@@ -116,9 +116,9 @@ def main(verbose=False, hyperparams=None, sensors=None, image_name="zjlqwq/gym_t
         )
         trainer = Trainer(agent, env, args, test_env=test_env)
 
-    returns, steps, entropies = trainer(track_list)
+    # returns, steps, entropies = trainer(track_list)
 
-    # trainer.test()
+    trainer.test()
     # plotting
     matplotlib.use("Agg")
 

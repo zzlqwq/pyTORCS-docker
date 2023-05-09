@@ -123,7 +123,7 @@ class LocalReward(BaseReward):
 
         reward = 0
         # publish going out of track
-        reward += self.out_track_reward(obs["trackPos"])
+        # reward += self.out_track_reward(obs["trackPos"])
         # punishment for damage
         reward += self.dirt_damage_reward(obs["damage"], obs_prev["damage"], obs["trackPos"])
         # punish wobbling
@@ -134,7 +134,7 @@ class LocalReward(BaseReward):
         # reward for going straight
         # reward += self.cos_speed_reward(obs["speedX"], obs["angle"])
         # reward += self.sin_speed_reward(obs["speedX"], obs["angle"])
-        reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"]) * 150
+        reward += self.__dist_reward(obs["distFromStart"], obs_prev["distFromStart"]) * 200
         reward += self.accel_reward(obs["distFromStart"], action["accel"])
         # behaviour terminal rewards
         # reward += self._oot_reward(obs["trackPos"]) * self.terminal_w

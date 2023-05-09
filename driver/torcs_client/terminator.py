@@ -4,7 +4,7 @@ import numpy as np
 speed_term_start = 50
 # km/h, episode terminates if car is running slower than this limit
 boring_speed = 1
-max_damage = 20
+max_damage = 1
 cul_damage = 0
 # tolerance steps for out of track
 out_max = 100
@@ -29,12 +29,14 @@ def custom_terminal(obs, obs_pre, curr_step):
         # reset if car is back on track - works for initialization and reset
         custom_terminal.first_out = -1
 
-    if abs(damage - damage_pre) > 0 and np.abs(track_pos) >= 1:
-        global cul_damage
-        cul_damage += abs(damage - damage_pre)
-        if cul_damage > max_damage:
-            terminal = True
-            cul_damage = 0
+    # if abs(damage - damage_pre) > 0 and np.abs(track_pos) >= 1:
+    #     global cul_damage
+    #     cul_damage += abs(damage - damage_pre)
+    #     if cul_damage > max_damage:
+    #         terminal = True
+    #         cul_damage = 0
+    if damage > max_damage:
+        terminal = True
 
     if speed_term_start < curr_step:
         # Episode terminates if the agent is too slow
