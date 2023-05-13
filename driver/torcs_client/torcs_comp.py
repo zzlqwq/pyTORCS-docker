@@ -54,10 +54,10 @@ class TorcsEnv:
                                            "alpine-2",
                                            "e-track-6", "g-track-3", "ruudskogen", "wheel-1", "brondehach", "e-track-2",
                                            "forza", "spring", "wheel-2",
-                                           "aalborg", "e-track-1", "e-track-5", "e-track-1", "e-track-5", "eroad",
+                                           "aalborg", "e-track-1", "e-track-5", "e-track-1", "eroad",
                                            "e-track-4", "g-track-1", "Zongxoi-city", "Rauleswor-desert"],
                                   "oval": ["a-speedway", "b-speedway", "e-speedway", "g-speedway", "michigan",
-                                           "c-speedway", "d-speedway", "f-speedway"]}
+                                           "c-speedway", "d-speedway", "f-speedway", "e-track-5"]}
 
         # restart request ( relaunches torcs on environment reset )
         self.restart_needed = False

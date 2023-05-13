@@ -158,7 +158,6 @@ class Trainer:
 
             obs = self._env.reset()
             obs, track_sensor, game_info = unpack_state(obs)
-
             episode_start_time = time.perf_counter()
             while total_steps < self._max_steps:
                 if total_steps < self._policy.n_warmup:
@@ -168,7 +167,6 @@ class Trainer:
 
                 # if n_episode <= 1 and episode_steps < 3000 or n_episode % 15 == 0:
                 #     action = self.simple_controller(obs, track_sensor)
-
                 next_obs, reward, done = self._env.step(action)
                 next_obs, track_sensor, game_info = unpack_state(next_obs)
 
@@ -260,16 +258,19 @@ class Trainer:
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("aalborg")
+        self._env.set_track("Zongxoi-city")
         while True:
             obs = self._env.reset()
-            obs, _, _ = unpack_state(obs)
+            obs, track_sensor, game_info = unpack_state(obs)
             done = False
+            start_time = time.perf_counter()
             while not done:
                 action = self._policy.get_action(obs, test=1.0)
                 next_obs, reward, done = self._env.step(action)
-                next_obs, _, _ = unpack_state(next_obs)
+                next_obs, track_sensor, game_info = unpack_state(next_obs)
                 obs = next_obs
+            end_time = time.perf_counter()
+            print("Duration: {}".format(end_time - start_time))
 
     def evaluate_policy_continuously(self):
         """

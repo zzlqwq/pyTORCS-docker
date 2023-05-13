@@ -4,7 +4,7 @@ import numpy as np
 speed_term_start = 50
 # km/h, episode terminates if car is running slower than this limit
 boring_speed = 1
-max_damage = 1
+max_damage = 0
 cul_damage = 0
 # tolerance steps for out of track
 out_max = 100
@@ -47,7 +47,7 @@ def custom_terminal(obs, obs_pre, curr_step):
         # Episode is terminated if the agent runs backward
         terminal = True
 
-    if obs["distRaced"] >= obs["trackLen"] - 2:
+    if obs["distRaced"] >= (obs["trackLen"] - 2):
         # completed one lap
         terminal = True
     return terminal

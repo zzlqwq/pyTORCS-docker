@@ -34,7 +34,7 @@ hyperparams:
   test_interval: 10000
 
   #  dataset_dir : "dataset/"
-  model_dir: "results/aalborg-83"
+  model_dir: "results/Zongxoicity"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
