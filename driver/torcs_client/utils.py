@@ -69,7 +69,7 @@ def start_container(image_name, verbose, ports, privileged):
         scr_car_dir = os.path.join(os.getcwd(), "torcs/configs/drivers/scr_server/0")
         if verbose: SimpleLogger.info("Starting TORCS container...")
         docker_command = []
-        docker_command.extend(["nvidia-docker", "run", "--ipc=host",
+        docker_command.extend(["docker", "run", "--ipc=host",
                                "-v", "/tmp/.X11-unix:/tmp/.X11-unix:ro",
                                "-v", "{}:/usr/local/share/games/torcs/config:ro".format(torcs_config_dir),
                                "-v", "{}:/usr/local/share/games/torcs/drivers/scr_server/scr_server.xml:ro".format(

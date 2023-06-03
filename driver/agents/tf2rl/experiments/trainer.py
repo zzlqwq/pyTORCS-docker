@@ -87,9 +87,6 @@ class Trainer:
         self.writer = tf.summary.create_file_writer(self._output_dir)
         self.writer.set_as_default()
 
-        self._best_train_duration = 1000000
-        self._best_test_duration = 1000000
-
     def _set_check_point(self, model_dir):
         # Save and restore model
         self._checkpoint = tf.train.Checkpoint(policy=self._policy)
@@ -141,124 +138,119 @@ class Trainer:
         returns = []
         steps = []
 
-        for track in track_list:
-            if self._evaluate:
-                self.evaluate_policy_continuously()
+        total_steps = 0
+        tf.summary.experimental.set_step(total_steps)
+        episode_steps = 0
+        episode_return = 0
+        n_episode = 0
 
-            total_steps = 0
+        replay_buffer = get_replay_buffer(
+            self._policy, self._env, self._use_prioritized_rb,
+            self._use_nstep_rb, self._n_step)
+
+        track = track_list[0]
+        failed_track = track_list[0]
+        self._env.set_track(track)
+        obs = self._env.reset()
+        obs, track_sensor, game_info = unpack_state(obs)
+
+        episode_start_time = time.perf_counter()
+
+        change_track = False
+
+        while total_steps < self._max_steps:
+            if change_track:
+                self._env.set_track(failed_track)
+                obs = self._env.reset()
+                obs, track_sensor, game_info = unpack_state(obs)
+                change_track = False
+
+            action = self._policy.get_action(obs)
+
+            next_obs, reward, done = self._env.step(action)
+            next_obs, track_sensor, game_info = unpack_state(next_obs)
+
+            episode_steps += 1
+            episode_return += reward
+            total_steps += 1
             tf.summary.experimental.set_step(total_steps)
-            episode_steps = 0
-            episode_return = 0
-            n_episode = 0
 
-            replay_buffer = get_replay_buffer(
-                self._policy, self._env, self._use_prioritized_rb,
-                self._use_nstep_rb, self._n_step)
-            self._env.set_track(track)
+            done_flag = done
 
-            obs = self._env.reset()
-            obs, track_sensor, game_info = unpack_state(obs)
-            episode_start_time = time.perf_counter()
-            while total_steps < self._max_steps:
-                if total_steps < self._policy.n_warmup:
-                    action = self._env.action_space.sample()
-                else:
-                    action = self._policy.get_action(obs)
+            replay_buffer.add(obs=obs, act=action, next_obs=next_obs, rew=reward, done=done_flag)
+            obs = next_obs
 
-                # if n_episode <= 1 and episode_steps < 3000 or n_episode % 15 == 0:
-                #     action = self.simple_controller(obs, track_sensor)
-                next_obs, reward, done = self._env.step(action)
-                next_obs, track_sensor, game_info = unpack_state(next_obs)
+            if done:
+                duration = time.perf_counter() - episode_start_time
+                fps = episode_steps / duration
 
-                episode_steps += 1
-                episode_return += reward
-                total_steps += 1
-                tf.summary.experimental.set_step(total_steps)
+                self.logger.info(
+                    "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} "
+                    "FPS: {5:5.2f}".format(
+                        n_episode + 1, int(total_steps), episode_steps, episode_return, duration, fps))
+                tf.summary.scalar(name="Common/training_return", data=episode_return)
+                tf.summary.scalar(name="Common/training_episode_length", data=episode_steps)
 
-                done_flag = done
+                replay_buffer.on_episode_end()
+                obs = self._env.reset()
+                obs, track_sensor, game_info = unpack_state(obs)
 
-                replay_buffer.add(obs=obs, act=action, next_obs=next_obs, rew=reward, done=done_flag)
-                obs = next_obs
+                if n_episode > 500:
+                    returns.append(episode_return)
+                    steps.append(episode_steps)
 
-                if done:
-                    duration = time.perf_counter() - episode_start_time
-                    fps = episode_steps / duration
+                n_episode += 1
 
-                    if game_info["distRaced"] >= (game_info["trackLen"] - 2) and \
-                            duration < self._best_train_duration:
-                        self._best_train_duration = game_info["totalTime"]
-                        self.logger.info("Saving checkpoint")
-                        self.logger.info("Best duration: {}".format(self._best_train_duration))
-                        self.checkpoint_manager.save(total_steps)
+                episode_steps = 0
+                episode_return = 0
 
-                    self.logger.info(
-                        "Total Epi: {0: 5} Steps: {1: 7} Episode Steps: {2: 5} Return: {3: 5.4f} TIME(s): {4:6.2f} "
-                        "FPS: {5:5.2f}".format(
-                            n_episode + 1, int(total_steps), episode_steps, episode_return, duration, fps))
-                    tf.summary.scalar(name="Common/training_return", data=episode_return)
-                    tf.summary.scalar(name="Common/training_episode_length", data=episode_steps)
+            if total_steps < self._policy.n_warmup:
+                continue
 
-                    replay_buffer.on_episode_end()
-                    obs = self._env.reset()
-                    obs, track_sensor, game_info = unpack_state(obs)
+            if total_steps % self._policy.update_interval == 0:
+                samples = replay_buffer.sample(self._policy.batch_size)
+                with tf.summary.record_if(total_steps % self._save_summary_interval == 0):
+                    self._policy.train(
+                        samples["obs"], samples["act"], samples["next_obs"],
+                        samples["rew"], np.array(samples["done"], dtype=np.float32),
+                        None if not self._use_prioritized_rb else samples["weights"])
+                if self._use_prioritized_rb:
+                    td_error = self._policy.compute_td_error(
+                        samples["obs"], samples["act"], samples["next_obs"],
+                        samples["rew"], np.array(samples["done"], dtype=np.float32))
+                    replay_buffer.update_priorities(
+                        samples["indexes"], np.abs(td_error) + 1e-6)
 
-                    if n_episode > 500:
-                        returns.append(episode_return)
-                        steps.append(episode_steps)
+            if total_steps % self._test_interval == 0:
+                test_return, test_steps, failed_track, finished = self.evaluate_policy(total_steps,
+                                                                                       track_list)
+                self.logger.info("Test Return: {0: 5.4f} Test Steps: {1: 5.4f}".format(test_return, test_steps))
+                self.logger.info("Failed Track: {}".format(failed_track))
+                self.logger.info("Finished: {}".format(finished))
 
-                    n_episode += 1
+                tf.summary.scalar(
+                    name="Common/average_test_return", data=test_return)
+                tf.summary.scalar(
+                    name="Common/average_test_episode_length", data=test_steps)
 
-                    episode_steps = 0
-                    episode_return = 0
+                if failed_track != track:
+                    change_track = True
+                if finished:
+                    self.logger.info("Saving checkpoint")
+                    self.checkpoint_manager.save(total_steps)
 
-                if total_steps < self._policy.n_warmup:
-                    continue
-
-                if total_steps % self._policy.update_interval == 0:
-                    samples = replay_buffer.sample(self._policy.batch_size)
-                    with tf.summary.record_if(total_steps % self._save_summary_interval == 0):
-                        self._policy.train(
-                            samples["obs"], samples["act"], samples["next_obs"],
-                            samples["rew"], np.array(samples["done"], dtype=np.float32),
-                            None if not self._use_prioritized_rb else samples["weights"])
-                    if self._use_prioritized_rb:
-                        td_error = self._policy.compute_td_error(
-                            samples["obs"], samples["act"], samples["next_obs"],
-                            samples["rew"], np.array(samples["done"], dtype=np.float32))
-                        replay_buffer.update_priorities(
-                            samples["indexes"], np.abs(td_error) + 1e-6)
-
-                if total_steps % self._test_interval == 0:
-                    avg_test_return, avg_test_steps, test_duration, finished = self.evaluate_policy(total_steps)
-                    self.logger.info(
-                        "Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} duration: {2:6.2f} finished: {3}".format(
-                            total_steps, avg_test_return, test_duration, finished))
-                    fps = avg_test_steps / test_duration
-                    tf.summary.scalar(
-                        name="Common/average_test_return", data=avg_test_return)
-                    tf.summary.scalar(
-                        name="Common/average_test_episode_length", data=avg_test_steps)
-                    tf.summary.scalar(name="Common/fps", data=fps)
-
-                    if finished and test_duration < self._best_test_duration:
-                        self._best_test_duration = test_duration
-                        self.logger.info("Saving checkpoint")
-                        self.logger.info("Best duration: {}".format(self._best_test_duration))
-                        self.checkpoint_manager.save(total_steps)
-
-                if done:
-                    episode_start_time = time.perf_counter()
+            if done:
+                episode_start_time = time.perf_counter()
 
             if n_episode > 500:
                 returns.append(episode_return)
                 steps.append(episode_steps)
 
         tf.summary.flush()
-
         return returns, steps, []
 
     def test(self):
-        self._env.set_track("Zongxoi-city")
+        self._env.set_track("dirt-4")
         while True:
             obs = self._env.reset()
             obs, track_sensor, game_info = unpack_state(obs)
@@ -289,37 +281,48 @@ class Trainer:
                 self.logger.info("Restored {}".format(self._latest_path_ckpt))
             self.evaluate_policy(total_steps=0)
 
-    def evaluate_policy(self, total_steps):
+    def evaluate_policy(self, total_steps, track_list):
         tf.summary.experimental.set_step(total_steps)
 
-        avg_test_return = 0.
-        avg_test_steps = 0
-        finished = False
+        test_return = 0.
+        test_steps = 0
 
-        for i in range(1):
-            episode_return = 0.
+        finished = False
+        finished_times = 0
+        failed_track = None
+
+        for track in track_list:
+
+            self._test_env.set_track(track)
             obs = self._test_env.reset()
             obs, _, game_info = unpack_state(obs)
-            avg_test_steps += 1
-            start_time = time.perf_counter()
-            end_time = 0
-            for _ in range(1000000):
+
+            while True:
                 action = self._policy.get_action(obs, test=True)
                 next_obs, reward, done = self._test_env.step(action)
                 next_obs, _, game_info = unpack_state(next_obs)
-                avg_test_steps += 1
 
-                episode_return += reward
+                test_steps += 1
+                test_return += reward
+
                 obs = next_obs
                 if done:
-                    end_time = time.perf_counter()
                     if game_info["distRaced"] >= (game_info["trackLen"] - 2):
-                        finished = True
+                        finished_times += 1
+                    else:
+                        failed_track = track
                     break
-            test_duration = end_time - start_time
-            avg_test_return += episode_return
+            if failed_track is not None:
+                break
 
-        return avg_test_return, avg_test_steps, test_duration, finished
+        if finished_times >= len(track_list):
+            finished = True
+            # random track
+            failed_track = track_list[np.random.randint(len(track_list))]
+        else:
+            finished = False
+
+        return test_return, test_steps, failed_track, finished
 
     def _set_from_args(self, args):
         # experiment settings

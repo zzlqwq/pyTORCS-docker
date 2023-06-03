@@ -4,7 +4,7 @@ import numpy as np
 speed_term_start = 50
 # km/h, episode terminates if car is running slower than this limit
 boring_speed = 1
-max_damage = 0
+max_damage = 2000
 cul_damage = 0
 # tolerance steps for out of track
 out_max = 100

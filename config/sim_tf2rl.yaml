@@ -26,7 +26,7 @@ hyperparams:
   gamma: 0.99
 
   tau: 0.005
-  buf_size: 100000
+  buf_size: 500000
   n_warmup: 0
   update_interval: 2
   noise_phi: 0
@@ -34,7 +34,7 @@ hyperparams:
   test_interval: 10000
 
   #  dataset_dir : "dataset/"
-  model_dir: "results/Zongxoicity"
+  model_dir: "results/20230520T151634.631840_DDPG_"
 
 # dict with key: observation name, val: normalization scale (sensor max value)
 sensors:
@@ -81,6 +81,13 @@ training:
   # OVAL : michigan
   track:
     - "aalborg"
+    - "a-speedway"
+    - "b-speedway"
+    - "e-track-5"
+    - "Zongxoi-city"
+    - "Rauleswor-desert"
+    - "dirt-3"
+    - "dirt-4"
 
   # choosen car
   # can be choosen between
@@ -96,7 +103,7 @@ training:
   gear_change: False
   # set number of steps before restarting the episode
   # max 50 steps per second
-  max_steps: 2500000
+  max_steps: 10000000
   # number of passes on data
   epochs: 12
   # number of steps before each training
